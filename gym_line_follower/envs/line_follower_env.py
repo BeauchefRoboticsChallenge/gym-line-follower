@@ -26,7 +26,7 @@ def fig2rgb_array(fig):
 class LineFollowerEnv(gym.Env):
     metadata = {"render.modes": ["human", "gui", "rgb_array", "pov"]}
 
-    SUPPORTED_OBSV_TYPE = ["points_visible", "points_latch", "points_latch_bool", "camera"]
+    SUPPORTED_OBSV_TYPE = ["points_visible", "points_latch", "points_latch_bool", "camera","ir_array"]
 
     def __init__(self, gui=True, nb_cam_pts=8, sub_steps=10, sim_time_step=1 / 250,
                  max_track_err=0.3, power_limit=0.4, max_time=60, config=None, randomize=True, obsv_type="points_latch",
@@ -51,6 +51,7 @@ class LineFollowerEnv(gym.Env):
                             "points_latch_bool" - same as "latch" with one additional value to indicate if line is
                                 visible or not (0 or 1) - shape (2 * nb_cam_pts + 1)
                             "camera" - return (240, 320, 3) camera image RGB array
+                            "ir_array" - return array of lenght irsensor_array_number with the ir line sensor readings
         :param track: Optional track instance to use. If none track is generated randomly.
         :param track_render_params: Track render parameters dict.
         """
@@ -100,6 +101,11 @@ class LineFollowerEnv(gym.Env):
                                                 dtype=np.float32)
         elif self.obsv_type == "camera":
             self.observation_space = spaces.Box(low=0, high=255, shape=(240, 320, 3), dtype=np.uint8)
+        elif self.obsv_type == "ir_array":
+            sen_num = self.config["irsensor_array_number"]
+            self.observation_space = spaces.Box(low=np.array([0] * sen_num),
+                                                high=np.array([255] * sen_num),
+                                                dtype=np.uint8)
 
         self.pb_client: p = BulletClient(connection_mode=p.GUI if self.gui else p.DIRECT)
         self.pb_client.setPhysicsEngineParameter(enableFileCaching=0)
@@ -202,6 +208,9 @@ class LineFollowerEnv(gym.Env):
         elif self.obsv_type == "camera":
             self.observation = observation
 
+        elif self.obsv_type == "ir_array":
+            self.observation = observation
+
         # Track distance error
         track_err = self.track.distance_from_point(self.follower_bot.pos[0])
         track_err_norm = track_err * (1.0 / self.max_track_err)
@@ -236,6 +245,7 @@ class LineFollowerEnv(gym.Env):
         info = self._get_info()
         self.step_counter += 1
         self.done = done
+        print("HOLAS")
         return observation, reward, done, info
 
     def render(self, mode='human'):

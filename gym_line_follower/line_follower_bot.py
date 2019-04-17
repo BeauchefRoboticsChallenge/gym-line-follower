@@ -18,7 +18,7 @@ class LineFollowerBot:
     """
     Class simulating a line following bot with differential steering.
     """
-    SUPPORTED_OBSV_TYPE = ["points_visible", "points_latch", "points_latch_bool", "camera"]
+    SUPPORTED_OBSV_TYPE = ["points_visible", "points_latch", "points_latch_bool", "camera","ir_array"]
 
     def __init__(self, pb_client, nb_cam_points, start_xy, start_yaw, config, obsv_type="visible"):
         """
@@ -36,6 +36,7 @@ class LineFollowerBot:
                                 camera window, returns empty array otherwise
                             "points_latch_bool" - same as "latch", se LineFollowerEnv implementation
                             "camera" - return (240, 320, 3) camera image RGB array
+                            "ir_array" - return array of lenght irsensor_array_number with the ir line sensor readings
         """
         self.local_dir = os.path.dirname(__file__)
         self.config = config
@@ -54,7 +55,8 @@ class LineFollowerBot:
 
         self.track_ref_point: ReferencePoint = None
         self.cam_target_point: ReferencePoint = None  # POV Camera target point
-        self.cam_pos_point: ReferencePoint = None  # POC Camera position
+        self.cam_pos_point: ReferencePoint = None  # POV Camera position
+        self.ir_pos_point: ReferencePoint = None
 
         self.volts = 0.
 
@@ -99,6 +101,10 @@ class LineFollowerBot:
         self.cam_pos_point = ReferencePoint(xy_shift=(cam_pos_pt_x, 0.))
         self.cam_pos_point.move(xy, yaw)
 
+        if self.obsv_type=="ir_array":
+            ir_pos_pt_x = self.config["irsensor_position_point_x"]
+            self.ir_pos_point = ReferencePoint(xy_shift=(ir_pos_pt_x, 0.))
+
         nom_volt = self.config["motor_nominal_voltage"]
         no_load_speed = self.config["motor_no_load_speed"]
         stall_torque = self.config["motor_stall_torque"]
@@ -126,6 +132,8 @@ class LineFollowerBot:
         self.track_ref_point.move(new_xy, new_yaw)
         self.cam_target_point.move(new_xy, new_yaw)
         self.cam_pos_point.move(new_xy, new_yaw)
+        if self.obsv_type == "ir_array":
+            self.ir_pos_point.move(new_xy, new_yaw)
         self.prev_pos = self.pos
         self.prev_vel = self.vel
         self.pos = new_xy, new_yaw
@@ -189,6 +197,9 @@ class LineFollowerBot:
 
         elif self.obsv_type == "camera":
             return self.get_pov_image()
+
+        elif self.obsv_type == "ir_array":
+            return self.get_ir_array()
 
     def _set_wheel_torque(self, l_torque, r_torque):
         """
@@ -255,3 +266,45 @@ class LineFollowerBot:
         rgb = np.array(rgb)
         rgb = rgb[:, :, :3]
         return rgb
+
+    def get_ir_image(self):#TODO
+        ir_x, ir_y = self.ir_pos_point.get_xy()
+        ir_z = self.config["irsensor_position_heigth"]
+        _ , yaw = self.get_position()
+        vm = self.pb_client.computeViewMatrix(cameraEyePosition=[ir_x, ir_y, ir_z],
+                                              cameraTargetPosition=[ir_x, ir_y, 0.0],
+                                              cameraUpVector=[np.cos(yaw), np.sin(yaw), 0.0])
+
+        fov=self.config["irsensor_photo_fov"]
+        num=self.config["irsensor_array_number"]
+        sep=self.config["irsensor_photo_separation"]
+        r=ir_z*np.tan(np.deg2rad(fov/2))
+        sen_w=(num-1)*sep+2*r
+        sen_h=2*r
+        pm = self.pb_client.computeProjectionMatrix(left=-sen_w/4,
+                                                    right=sen_w/4,
+                                                    bottom=-sen_h/4,
+                                                    top=sen_h/4,
+                                                    nearVal=ir_z/2,
+                                                    farVal=ir_z)
+        w, h, rgb, dtypeth, seg = self.pb_client.getCameraImage(width=int(sen_w*5000),
+                                                             height=int(sen_h*5000),
+                                                             viewMatrix=vm,
+                                                             projectionMatrix=pm,
+                                                             renderer=p.ER_BULLET_HARDWARE_OPENGL,
+                                                             flags=p.ER_NO_SEGMENTATION_MASK)
+        rgb = np.array(rgb)
+        rgb = rgb[:, :, :3]
+        gray = rgb.dot([0.07, 0.72, 0.21])
+        return np.minimum(gray, 255).astype(np.uint8)
+
+    def get_ir_array(self):
+        im=self.get_ir_image()
+        num=self.config["irsensor_array_number"]
+        d=im.shape[0]
+        sep=int((im.shape[1]-d)/(num-1))
+        ir=np.zeros(num,dtype=np.uint8)
+        for i in range(num):
+            sen=im[:,(sep*i):(sep*i+d)]
+            ir[i]=int(np.mean(sen))
+        return ir

@@ -17,5 +17,10 @@
   "track_ref_point_x": 0.112,
   "camera_target_point_x": 0.185,
   "camera_position_point_x": 0.060,
+  "irsensor_position_point_x": 0.090,
+  "irsensor_position_heigth": 0.003,
+  "irsensor_array_number": 6,
+  "irsensor_photo_separation": 0.009525,
+  "irsensor_photo_fov": 80,
   "volts": 5.0
 }
