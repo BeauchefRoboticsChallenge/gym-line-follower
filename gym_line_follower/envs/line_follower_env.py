@@ -245,7 +245,6 @@ class LineFollowerEnv(gym.Env):
         info = self._get_info()
         self.step_counter += 1
         self.done = done
-        print("HOLAS")
         return observation, reward, done, info
 
     def render(self, mode='human'):
