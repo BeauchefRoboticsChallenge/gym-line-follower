@@ -158,6 +158,13 @@ class LineFollowerBot:
         :return: observation, according to self.obsv_type
         """
         self._update_position_velocity()
+
+        if self.obsv_type == "camera":
+            return self.get_pov_image()
+
+        elif self.obsv_type == "ir_array":
+            return self.get_ir_array()
+
         visible_pts = self.cam_window.visible_points(track.mpt)
 
         if self.obsv_type == "points_visible":
@@ -195,11 +202,7 @@ class LineFollowerBot:
             else:
                 return []
 
-        elif self.obsv_type == "camera":
-            return self.get_pov_image()
 
-        elif self.obsv_type == "ir_array":
-            return self.get_ir_array()
 
     def _set_wheel_torque(self, l_torque, r_torque):
         """
@@ -291,7 +294,8 @@ class LineFollowerBot:
                                                              height=int(sen_h*5000),
                                                              viewMatrix=vm,
                                                              projectionMatrix=pm,
-                                                             renderer=p.ER_BULLET_HARDWARE_OPENGL,
+                                                             renderer=p.ER_TINY_RENDERER,
+                                                             shadow=0,
                                                              flags=p.ER_NO_SEGMENTATION_MASK)
         rgb = np.array(rgb)
         rgb = rgb[:, :, :3]
