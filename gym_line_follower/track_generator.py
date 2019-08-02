@@ -7,17 +7,57 @@ from gym_line_follower.genetic.de import diff_evolution
 from gym_line_follower.genetic.fitness import curves_fitness,curves_fitness_log
 import pickle
 
-def curve_fun(x0,y0,cAng,da,ds):
-    def _curve(pd=5):
-        c=get_curve(x0,y0,cAng,da,ds,pd=pd)
-        return c.tolist()
-    return _curve
+class Segment(object):
+    """docstring for Segment"""
+    def __init__(self, p1, p2):
+        super(Segment, self).__init__()
+        self.start = p1
+        self.end = p2
 
-def rect_fun(x0,y0,cAng,ds):
-    def _rect(pd=50):
-        r=get_rect(x0,y0,cAng,ds,pd=pd)
-        return r.tolist()
-    return _rect
+    def get_points(self, arg):
+        return []
+
+    def points_list(self,pd):
+        return self.get_points(pd).tolist()
+        
+class Curve(Segment):
+    """docstring for Curve"""
+    def __init__(self, x0,y0,cAng,da,ds):
+        cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
+        p1 = (x0,y0,cAng)
+        r=ds/da
+        x,y=curve_p(x0,y0,cAng,da,r)
+        ang=cAng+da
+        ang=np.arctan2(np.sin(ang),np.cos(ang))
+        p2 = (x,y,ang)
+        super(Curve, self).__init__(p1,p2)
+        self.args = [x0,y0,cAng,da,ds]
+        
+    def get_points(self, pd):
+        return get_curve(*self.args,pd=pd)
+
+    @classmethod
+    def random_curve(cls,x0,y0,cAng,rmax,dsmax,damax,direction=None):
+        rc=100+random.random()*rmax
+        dac=np.clip((100+random.random()*dsmax)/rc,0,damax)
+        if direction is not None:
+            dac*=direction
+        else:
+            dac*=random.choice([-1,1])
+        dsc=abs(rc*dac)
+        return cls(x0,y0,cAng,dac,dsc)
+
+class Rect(Segment):
+    """docstring for Rect"""
+    def __init__(self, x0,y0,cAng,ds):
+        cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
+        p1 = (x0,y0,cAng)
+        p2 = tuple(np.append(rect_p(x0,y0,cAng,ds),cAng))
+        super(Rect, self).__init__(p1,p2)
+        self.args = [x0,y0,cAng,ds]
+
+    def get_points(self,pd):
+        return get_rect(*self.args,pd)
 
 class Track_Generator(object):
     """docstring for Track_Generator"""
@@ -33,35 +73,20 @@ class Track_Generator(object):
     def gen_points(self, segments,pd):
         points=[]
         for seg in segments:
-            points += seg(pd)
+            points += seg.points_list(pd)
         return points
 
     def get_points(self,pd):
         return self.gen_points(self.segments,pd)
 
-    def rect(self,x0,y0,cAng,ds):
-        seg=rect_fun(x0,y0,cAng,ds)
-        p=np.append(rect_p(x0,y0,cAng,ds),cAng)
-        return (p,seg)
-
     def add_rect(self,x0,y0,cAng,ds):
-        p,seg=self.rect(x0,y0,cAng,ds)
-        self.segments.append(seg)
-        return p
-
-    def curve(self,x0,y0,cAng,da,ds):
-        seg=curve_fun(x0,y0,cAng,da,ds)
-        r=ds/da
-        x,y=curve_p(x0,y0,cAng,da,r)
-        cAng+=da
-        cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
-        p=np.array([x,y,cAng])
-        return  (p,seg)
+        r=Rect(x0,y0,cAng,ds)
+        self.segments.append(r)
+        return r.end
 
     def add_curve(self,x0,y0,cAng,da,ds):
-        p,seg = self.curve(x0,y0,cAng,da,ds)
-        self.segments.append(seg)
-        return p
+        c=Curve(x0,y0,cAng,da,ds)
+        return  c.end
     
     def random_curve(self,x0,y0,cAng,rmax,dsmax,damax,direction=None):
         rc=100+random.random()*rmax
@@ -78,27 +103,25 @@ class Track_Generator(object):
         ds=r*np.pi/2
         curves=[]
 
-        curves.append(curve_fun(x0,y0,cAng,np.pi/2,ds))
-        cX,cY=curve_p(x0,y0,cAng,np.pi/2,r)
-        cAng=np.arctan2(np.sin(cAng+np.pi/2),np.cos(cAng+np.pi/2))
+        curves.append(Curve(x0,y0,cAng,np.pi/2,ds))
+        cX,cY,cAng=curves[-1].end
 
         ds=r*np.pi
         for _ in range(num):
             if sec!=0:
-                curves.append(rect_fun(cX,cY,cAng,sec))
-                cX,cY=rect_p(cX,cY,cAng,sec)
+                curves.append(Rect(cX,cY,cAng,sec))
+                cX,cY,cAng=curves[-1].end
 
-            curves.append(curve_fun(cX,cY,cAng,da[0],ds))
-            cX,cY=curve_p(cX,cY,cAng,da[0],-r)
-            cAng=np.arctan2(np.sin(cAng+da[0]),np.cos(cAng+da[0]))
+            curves.append(Curve(cX,cY,cAng,da[0],ds))
+            cX,cY,cAng=curves[-1].end
 
             if sec!=0:
-                curves.append(rect_fun(cX,cY,cAng,sec))
-                cX,cY=rect_p(cX,cY,cAng,sec)
+                curves.append(Rect(cX,cY,cAng,sec))
+                cX,cY,cAng=curves[-1].end
 
-            curves.append(curve_fun(cX,cY,cAng,da[1],ds))
-            cX,cY=curve_p(cX,cY,cAng,da[1],r)
-            cAng=np.arctan2(np.sin(cAng+da[1]),np.cos(cAng+da[1]))
+            curves.append(Curve(cX,cY,cAng,da[1],ds))
+            cX,cY,cAng=curves[-1].end
+
         if self.check_seg(curves):
             self.segments+=curves
             return (cX,cY,cAng)
@@ -107,23 +130,24 @@ class Track_Generator(object):
 
     def add_cross(self,x0,y0,cAng,ds1,cs1,ds2,cs2,direction=False):
         da=-np.pi/2 if direction else np.pi/2
-        rect1=rect_fun(x0,y0,cAng,ds1)
-        p1=np.append(rect_p(x0,y0,cAng,ds1),cAng)
+        rect1=Rect(x0,y0,cAng,ds1)
+        p1=rect1.end
         pm=rect_p(x0,y0,cAng,cs1)
         p2=np.append(rect_p(pm[0],pm[1],cAng-da,cs2),cAng+da)
-        rect2=rect_fun(p2[0],p2[1],cAng+da,ds2)
+        rect2=Rect(p2[0],p2[1],p2[2],ds2)
         #Random curve
-        pc,cur=self.random_curve(p1[0],p1[1],cAng,200,200,np.pi/2)
+        cur=Curve.random_curve(p1[0],p1[1],cAng,200,200,np.pi/2)
+        pc=cur.end
 
         sol=self.join_points(pc,p2,[rect2]+self.endline,[rect1,cur])
-        p3=rect_p(p2[0],p2[1],cAng+da,ds2)
+        p3=rect2.end
         self.segments.append(rect1)
         self.segments.append(cur)
         self.segments+=sol
         self.segments.append(rect2)
         cAng=np.arctan2(np.sin(cAng+da),np.cos(cAng+da))
 
-        return np.append(p3,cAng)
+        return p3
 
     def join_points(self, p1, p2, preSegments=[],postSegments=[]):
         track=self.get_points(pd=50)
@@ -144,13 +168,11 @@ class Track_Generator(object):
         for ds,da in closure.reshape((3,2)):
             da=da if np.abs(da) >= 0.01 else 0
             if da==0:
-                p,seg = self.rect(cX,cY,cAng,ds)
-                sol.append(seg)
-                cX,cY,cAng = p
+                sol.append(Rect(cX,cY,cAng,ds))
+                cX,cY,cAng=sol[-1].end
             else:
-                p,seg=self.curve(cX,cY,cAng,da,ds)
-                sol.append(seg)
-                cX,cY,cAng = p
+                sol.append(Curve(cX,cY,cAng,da,ds))
+                cX,cY,cAng=sol[-1].end
 
         pos_err=np.sqrt((cX-p2[0])**2+(cY-p2[1])**2)
         ang_err=np.abs(cAng-p2[2])
@@ -179,14 +201,14 @@ class Track_Generator(object):
         pre_finish= (ctrX - self.start_finish_D/2 - random.randint(250,aveRadius-500), ctrY + int(-aveRadius))
         
         #End section
-        self.endline=[rect_fun(pre_finish[0],pre_finish[1],0,finish[0]-pre_finish[0])]
-        self.endline.append(rect_fun(finish[0],finish[1],0,self.start_finish_D))
+        self.endline=[Rect(pre_finish[0],pre_finish[1],0,finish[0]-pre_finish[0])]
+        self.endline.append(Rect(finish[0],finish[1],0,self.start_finish_D))
         #points.append(post_start)
 
         #Primera curva
-        p,cur=self.random_curve(cX,cY,cAng,500,500,np.pi,1)
-        self.segments.append(cur)
-        cX,cY,cAng=p
+        self.segments.append(Curve.random_curve(cX,cY,cAng,500,500,np.pi,1))
+        cX,cY,cAng = self.segments[-1].end
+
 
         p=self.add_curve_seq(cX,cY,cAng,100,2,100)
         if p is not None:
@@ -194,7 +216,7 @@ class Track_Generator(object):
         else:
             print("ERROR")
         cX,cY,cAng = self.add_cross(cX,cY,cAng,1000,500,300,150,direction=True)
-        #for i in range(numVerts-1):
+        # #for i in range(numVerts-1):
 
         #Close curve
         closure=self.join_points((cX,cY,cAng),pre_finish+(0,),self.endline)
