@@ -9,6 +9,12 @@ from shapely.geometry import MultiPoint, Point, LineString
 from shapely.ops import nearest_points
 
 from gym_line_follower.line_interpolation import interpolate_points
+from gym_line_follower.track_generator import Track_Generator
+
+import warnings
+
+
+warnings.filterwarnings("error")
 
 root_dir = os.path.dirname(__file__)
 
@@ -49,13 +55,13 @@ class Segment:
         self.curve = bezier(self.p, self.numpoints)
 
 
-def get_curve(points, **kw):
-    segments = []
-    for i in range(len(points) - 1):
-        seg = Segment(points[i, :2], points[i + 1, :2], points[i, 2], points[i + 1, 2], **kw)
-        segments.append(seg)
-    curve = np.concatenate([s.curve for s in segments])
-    return segments, curve
+# def get_curve(points, **kw):
+#     segments = []
+#     for i in range(len(points) - 1):
+#         seg = Segment(points[i, :2], points[i + 1, :2], points[i, 2], points[i + 1, 2], **kw)
+#         segments.append(seg)
+#     curve = np.concatenate([s.curve for s in segments])
+#     return segments, curve
 
 
 def ccw_sort(p):
@@ -88,54 +94,6 @@ def get_bezier_curve(a, rad=0.2, edgy=0):
     return x, y, a
 
 
-def generate_polygon(ctrX, ctrY, aveRadius, irregularity, spikeyness, numVerts):
-    """
-    Start with the centre of the geometry at ctrX, ctrY,
-    then creates the geometry by sampling points on a circle around the centre.
-    Random noise is added by varying the angular spacing between sequential points,
-    and by varying the radial distance of each point from the centre.
-
-    Params:
-    ctrX, ctrY - coordinates of the "centre" of the geometry
-    aveRadius - in px, the average radius of this geometry, this roughly controls how large the geometry is, really only useful for order of magnitude.
-    irregularity - [0,1] indicating how much variance there is in the angular spacing of vertices. [0,1] will map to [0, 2pi/numberOfVerts]
-    spikeyness - [0,1] indicating how much variance there is in each vertex from the circle of radius aveRadius. [0,1] will map to [0, aveRadius]
-    numVerts - self-explanatory
-
-    Returns a list of vertices, in CCW order."""
-
-    irregularity = np.clip(irregularity, 0, 1) * 2 * math.pi / numVerts
-    spikeyness = np.clip(spikeyness, 0, 1) * aveRadius
-
-    # generate n angle steps
-    angleSteps = []
-    lower = (2 * math.pi / numVerts) - irregularity
-    upper = (2 * math.pi / numVerts) + irregularity
-    sum = 0
-    for i in range(numVerts):
-        tmp = random.uniform(lower, upper)
-        angleSteps.append(tmp)
-        sum = sum + tmp
-
-    # normalize the steps so that point 0 and point n+1 are the same
-    k = sum / (2 * math.pi)
-    for i in range(numVerts):
-        angleSteps[i] = angleSteps[i] / k
-
-    # now generate the points
-    points = []
-    angle = random.uniform(0, 2 * math.pi)
-    for i in range(numVerts):
-        r_i = np.clip(random.gauss(aveRadius, spikeyness), 0, 2 * aveRadius)
-        x = ctrX + r_i * math.cos(angle)
-        y = ctrY + r_i * math.sin(angle)
-        points.append((int(x), int(y)))
-
-        angle = angle + angleSteps[i]
-
-    return points
-
-
 class Track:
     """
     Line follower follows a Track instance. This class contains methods for randomly generating, rendering and
@@ -146,7 +104,8 @@ class Track:
         l = LineString(pts).length
         n = int(l / 3e-3)  # Get number of points for 3 mm spacing
 
-        self.pts = interpolate_points(np.array(pts), n)  # interpolate points to get the right spacing
+        #self.pts = interpolate_points(np.array(pts), n)  # interpolate points to get the right spacing
+        self.pts=pts
         self.x = self.pts[:, 0]
         self.y = self.pts[:, 1]
 
@@ -171,7 +130,7 @@ class Track:
         self.done = False
 
     @classmethod
-    def generate(cls, approx_width=1., hw_ratio=0.5, seed=None, irregularity=0.2,
+    def generate(cls, approx_width=3., hw_ratio=0.5, seed=None, irregularity=0.2,
                  spikeyness=0.2, num_verts=10, *args, **kwargs):
         """
         Generate random track.
@@ -185,17 +144,18 @@ class Track:
         random.seed(seed)
         upscale = 1000.  # upscale so curve gen fun works
         r = upscale * approx_width / 2.
-        pts = generate_polygon(0, 0, r, irregularity=irregularity, spikeyness=spikeyness, numVerts=num_verts)
-        pts = np.array(pts)
+        tr = Track_Generator(0,0,r, numVerts=num_verts)
+        x,y = tr.get_vect()
+        #pts = np.array(pts)
 
         # Generate curve with points
-        x, y, _ = get_bezier_curve(pts, rad=0.2, edgy=0)
+        #x, y, _ = get_bezier_curve(pts, rad=0.2, edgy=0)
         # Remove duplicated point
-        x = x[:-1]
-        y = y[:-1]
+        #x = x[:-1]
+        #y = y[:-1]
 
         # Scale y
-        y = y * hw_ratio
+        #y = y * hw_ratio
 
         # Scale units
         unit_scale = 1000
@@ -203,13 +163,13 @@ class Track:
         pts = np.stack((x, y), axis=-1)
 
         # Check width / height:
-        if max(abs(min(x)), max(x)) * 2 > 1.5 * approx_width or max(abs(min(y)), max(y)) * 2 > 1.5 * approx_width * hw_ratio:
-            return cls.generate(approx_width, hw_ratio, seed, irregularity, spikeyness, num_verts, *args, **kwargs)
+        #if max(abs(min(x)), max(x)) * 2 > 1.5 * approx_width or max(abs(min(y)), max(y)) * 2 > 1.5 * approx_width * hw_ratio:
+        #    return cls.generate(approx_width, hw_ratio, seed, irregularity, spikeyness, num_verts, *args, **kwargs)
 
         # Randomly flip track direction
-        np.random.seed(seed)
-        if np.random.choice([True, False]):
-            pts = np.flip(pts, axis=0)
+        # np.random.seed(seed)
+        # if np.random.choice([True, False]):
+        #     pts = np.flip(pts, axis=0)
         return cls(pts, *args, **kwargs)
 
     @classmethod
@@ -325,6 +285,7 @@ class Track:
 
                 cv2.line(line, (x1_img, y1_img), (x2_img, y2_img), color=line_bgr, thickness=t_res,
                          lineType=cv2.LINE_AA)
+                #cv2.circle(line,(x1_img,y1_img),radius=int(0.1*ppm),color=(255,0,0),thickness=4)
 
         alpha = line_opacity
         out = cv2.addWeighted(line, alpha, bg, 1 - alpha, 0)
@@ -518,7 +479,7 @@ if __name__ == '__main__':
     for i in range(9):
         t = Track.generate(2.0, hw_ratio=0.7, seed=None,
                            spikeyness=0.2, nb_checkpoints=500)
-        img = t.render(ppm=1000)
+        img = t.render(w=5.,h=5.,ppm=1000)
         plt.subplot(3, 3, i+1)
         plt.imshow(img)
         plt.axis("off")
