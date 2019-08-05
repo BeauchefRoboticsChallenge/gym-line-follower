@@ -25,7 +25,7 @@ def collision_dect_check(seg,track,th=100):
     
 def curves_fitness(curves,track_obj):
     """
-    Fitness for the 3 curves to add to the track
+    Fitness for the n curves to add to the track
 
     Params:
     curves - Solution to test [ds1,da1,ds2,da2,ds3,da3]
@@ -33,21 +33,21 @@ def curves_fitness(curves,track_obj):
     """
     start=track_obj["start"] #(x1,y1,ang1)
     end=track_obj["end"] ##(x2,y2,ang2)
-    curve_r=curves.reshape((3,2))
+    curve_r=curves.reshape((-1,2))
     test_track=track_obj["track"]
-
+    n=curve_r.shape[0]-1
     x=start[0]
     y=start[1]
     cAng=start[2]
     #calcular puntos finales
     fit=0
     for i,c in enumerate(curve_r):
-        ds,da = c
-        da=da if np.abs(da) >= 0.01 else 0
+        ds,cur = c
+        da=cur*ds if np.abs(cur) >= 0.00025 else 0
         if da == 0:#rect
             #Collision
             rect=get_rect(x,y,cAng,ds,pd=50)
-            if i == 2:
+            if i == n:
                 if collision_dect(rect[:-1],test_track,th=90):
                     fit+= 10000
             else:
@@ -58,7 +58,7 @@ def curves_fitness(curves,track_obj):
             test_track=np.concatenate((test_track, rect), axis=0)
         else:
             curve=get_curve(x,y,cAng,da,ds,pd=50)
-            if i == 2:
+            if i == n:
                 if collision_dect(curve[:-1],test_track,th=90):
                     fit+= 10000
             else:
@@ -77,7 +77,7 @@ def curves_fitness(curves,track_obj):
 
 def curves_fitness_log(curves,track_obj):
     """
-    Fitness for the 3 curves to add to the track
+    Fitness for the n curves to add to the track
 
     Params:
     curves - Solution to test [ds1,da1,ds2,da2,ds3,da3]
@@ -85,26 +85,26 @@ def curves_fitness_log(curves,track_obj):
     """
     start=track_obj["start"] #(x1,y1,ang1)
     end=track_obj["end"] ##(x2,y2,ang2)
-    curve_r=curves.reshape((3,2))
+    curve_r=curves.reshape((-1,2))
     test_track=track_obj["track"]
-
+    n=curve_r.shape[0]-1
     x=start[0]
     y=start[1]
     cAng=start[2]
     #calcular puntos finales
     fit=0
     for i,c in enumerate(curve_r):
-        ds,da = c
-        da=da if np.abs(da) >= 0.01 else 0
+        ds,cur = c
+        da=cur*ds if np.abs(cur) >= 0.00025 else 0
         if da == 0:#rect
             #Collision
             rect=get_rect(x,y,cAng,ds,pd=50)
-            if i == 2:
-                if collision_dect_check(rect[:-1],test_track,th=90):
+            if i == n:
+                if collision_dect(rect[:-1],test_track,th=90):
                     fit+= 10000
                     print("collision in rect {}".format(i))
             else:
-                if collision_dect_check(rect[:-1],test_track,th=100):
+                if collision_dect(rect[:-1],test_track,th=100):
                     fit+= 10000
                     print("collision in rect {}".format(i))
             x=rect[-1][0]
@@ -112,12 +112,12 @@ def curves_fitness_log(curves,track_obj):
             test_track=np.concatenate((test_track, rect), axis=0)
         else:
             curve=get_curve(x,y,cAng,da,ds,pd=50)
-            if i == 2:
-                if collision_dect_check(curve[:-1],test_track,th=90):
+            if i == n:
+                if collision_dect(curve[:-1],test_track,th=90):
                     fit+= 10000
                     print("collision in curve {}".format(i))
             else:
-                if collision_dect_check(curve,test_track,th=100):
+                if collision_dect(curve,test_track,th=100):
                     fit+= 10000
                     print("collision in curve {}".format(i))
             x=curve[-1][0]
