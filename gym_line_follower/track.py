@@ -316,9 +316,14 @@ class Track:
         :param pt: position. [x, y] or shapely.geometry.Point instance
         :return: minimal absolute distance to track, float
         """
-        if not isinstance(pt, Point):
-            pt = Point(pt)
-        return pt.distance(self.mpt)
+        # if not isinstance(pt, Point):
+        #     pt = Point(pt)
+        # return pt.distance(self.mpt)
+        pt=np.array(pt)
+        win=np.clip([self.progress_idx-50,self.progress_idx+50],0,len(self.pts))
+        searchW=self.pts[win[0]:win[1]]
+        d=np.sqrt(np.sum((searchW-pt)**2,axis=1))
+        return np.min(d)
 
     def vector_at_index(self, idx):
         """
@@ -355,16 +360,24 @@ class Track:
             track_ang += 2 * np.pi
         return track_ang
 
+    def nearest_point_idx(self,pt):
+        pt=np.array(pt)
+        win=np.clip([self.progress_idx-50,self.progress_idx+50],0,len(self.pts))
+        searchW=self.pts[win[0]:win[1]]
+        d=np.sqrt(np.sum((searchW-pt)**2,axis=1))
+        return np.argmin(d)
+
     def nearest_point(self, pt):
         """
         Determine point on track that is nearest to provided point.
         :param pt: point to search nearest track point for, Point instance or coordinate array [x, y]
         :return: nearest track point coordinates [x, y]
         """
-        if not isinstance(pt, Point):
-            pt = Point(pt)
-        nearest = nearest_points(pt, self.mpt)[1]
-        return nearest.x, nearest.y
+        # if not isinstance(pt, Point):
+        #     pt = Point(pt)
+        # nearest = nearest_points(pt, self.mpt)[1]
+        # return nearest.x, nearest.y
+        return self.pts[self.nearest_point_idx(pt)]
 
     def nearest_angle(self, pt):
         """
@@ -372,8 +385,9 @@ class Track:
         :param pt: point to search nearest track point for, Point instance or coordinate array [x, y]
         :return: angle, float
         """
-        near_x, near_y = self.nearest_point(pt)
-        near_idx = np.where(self.x == near_x)[0][0]
+        # near_x, near_y = self.nearest_point(pt)
+        # near_idx = np.where(self.x == near_x)[0][0]
+        near_idx=self.nearest_point_idx(pt)
         return self.angle_at_index(near_idx)
 
     def nearest_vector(self, pt):
@@ -382,8 +396,9 @@ class Track:
         :param pt: point to search nearest track point for, Point instance or coordinate array [x, y]
         :return: unit track direction vector
         """
-        near_x, near_y = self.nearest_point(pt)
-        near_idx = np.where(self.x == near_x)[0][0]
+        # near_x, near_y = self.nearest_point(pt)
+        # near_idx = np.where(self.x == near_x)[0][0]
+        near_idx = self.nearest_point_idx(pt)
         return self.vector_at_index(near_idx)
 
     def length_between_idx(self, idx1, idx2, shortest=True):
@@ -438,11 +453,13 @@ class Track:
         :param pt2: second point
         :return: length, float, positive if in direction of track, negative otherwise
         """
-        near_1 = self.nearest_point(pt1)
-        near_2 = self.nearest_point(pt2)
+        # near_1 = self.nearest_point(pt1)
+        # near_2 = self.nearest_point(pt2)
 
-        idx_1 = np.where(self.x == near_1[0])[0][0]
-        idx_2 = np.where(self.x == near_2[0])[0][0]
+        # idx_1 = np.where(self.x == near_1[0])[0][0]
+        # idx_2 = np.where(self.x == near_2[0])[0][0]
+        idx_1=self.nearest_point_idx(pt1)
+        idx_2=self.nearest_point_idx(pt2)
         return self.length_between_idx(idx_1, idx_2, shortest=True)
 
     def position_along(self, pt):
@@ -451,8 +468,9 @@ class Track:
         :param pt:
         :return: position in range [0, track length]
         """
-        near = self.nearest_point(pt)
-        idx = np.where(self.x == near[0])[0][0]
+        # near = self.nearest_point(pt)
+        # idx = np.where(self.x == near[0])[0][0]
+        idx=self.nearest_point_idx(pt)
         return (idx / len(self.pts)) * self.length
 
     def update_progress(self, position):
