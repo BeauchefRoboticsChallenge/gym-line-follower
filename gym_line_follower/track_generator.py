@@ -9,10 +9,12 @@ import pickle
 
 class Segment(object):
     """docstring for Segment"""
-    def __init__(self, p1, p2):
+    def __init__(self, p1, p2, da, ds):
         super(Segment, self).__init__()
         self.start = p1
         self.end = p2
+        self.da = da
+        self.ds = ds
 
     def get_points(self, arg):
         return []
@@ -30,10 +32,8 @@ class Curve(Segment):
         ang=cAng+da
         ang=np.arctan2(np.sin(ang),np.cos(ang))
         p2 = (x,y,ang)
-        super(Curve, self).__init__(p1,p2)
+        super(Curve, self).__init__(p1,p2,da,ds)
         self.args = [x0,y0,cAng,da,ds]
-        self.da=da
-        self.ds=ds
         
     def get_points(self, pd):
         return get_curve(*self.args,pd=pd)
@@ -58,10 +58,8 @@ class Rect(Segment):
         cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
         p1 = (x0,y0,cAng)
         p2 = tuple(np.append(rect_p(x0,y0,cAng,ds),cAng))
-        super(Rect, self).__init__(p1,p2)
+        super(Rect, self).__init__(p1,p2,0,ds)
         self.args = [x0,y0,cAng,ds]
-        self.da=0
-        self.ds=ds
 
     def get_points(self,pd):
         return get_rect(*self.args,pd)
@@ -85,8 +83,10 @@ class Track_Generator(object):
     @classmethod
     def generate(cls,ctrX,ctrY,aveRadius, numVerts,bar=False):
         track=cls(ctrX,ctrY,aveRadius,bar)
-        track.generate_track(numVerts)
-        return track
+        if track.generate_track(numVerts):
+            return track
+        else:
+            return cls.generate(ctrX,ctrY,aveRadius, numVerts,bar)
 
     def gen_points(self, segments,pd):
         points=[]
@@ -159,7 +159,7 @@ class Track_Generator(object):
         cross.append(rect1)
         if not self.check_seg(cross+[rect2]):
             return False
-        sol,err=self.join_points(pc,p2,[rect2]+self.endline,[rect1,cur])
+        sol,err=self.join_points(pc,p2,[rect2]+self.endline,[rect1,cur],itmax=500)
         if err>50:
             return False
         p3=rect2.end
@@ -174,7 +174,7 @@ class Track_Generator(object):
             return False
         
 
-    def join_points(self, p1, p2, preSegments=[],postSegments=[],numCurves=3):
+    def join_points(self, p1, p2, preSegments=[],postSegments=[],numCurves=3,itmax=1000):
         track=self.get_points(pd=50)
         pre=self.gen_points(preSegments,pd=50)
         post=self.gen_points(postSegments,pd=50)
@@ -186,7 +186,7 @@ class Track_Generator(object):
         #Boundaries of the solution [length, curvature(1/R)] where sign of curvature determines direction
         bounds=[ (200,4000), (-(1/100), (1/100))]*numCurves
         closure,fit = diff_evolution(curves_fitness,ob,bounds,
-            mut=0.2,crossp=0.9,popsize=100,its=1000,stopf=1.0,bar=self.bar)
+            mut=0.2,crossp=0.9,popsize=100,its=itmax,stopf=1.0,bar=self.bar)
         if fit>=10000:
             print(curves_fitness_log(closure,ob))
         sol=[]
@@ -322,6 +322,11 @@ class Track_Generator(object):
             closure,err=self.join_points((cX,cY,cAng),pre_finish+(0,),self.endline,numCurves=4)
         self.segments+=closure
         self.segments+=self.endline
+        if err < 50:
+            return True
+        else: 
+            print("====FAILED====")
+            return False
         
     def get_vect(self):
         points=self.get_points(pd=5)
@@ -363,12 +368,17 @@ def testTrack():
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    import pickle
     print("Test")
     rad=1000*3.0/2
     print("test passed:",testTrack())
     track=Track_Generator.generate(0,0,rad,20,bar=True)
     print(track.segments)
     x,y=track.get_vect()
+    unit_scale = 1000
+    x, y = x / unit_scale, y / unit_scale
+    pts = np.stack((x, y), axis=-1)
+    pickle.dump( pts, open( "track.p", "wb" ) )
     print("Length:",track.get_length(),"[m]")
     plt.figure()
     plt.plot(x,y)

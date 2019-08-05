@@ -101,9 +101,17 @@ class Track:
     """
 
     def __init__(self, pts, nb_checkpoints=100, render_params=None):
+        #Center track
+        minp=np.min(pts,axis=0)
+        maxp=np.max(pts,axis=0)
+        w=maxp-minp
+        ctr=minp+(w)/2
+        pts=pts-ctr
+        
         l = LineString(pts).length
         n = int(l / 3e-3)  # Get number of points for 3 mm spacing
-
+        self.width=w[0]
+        self.height=w[1]
         #self.pts = interpolate_points(np.array(pts), n)  # interpolate points to get the right spacing
         self.pts=pts
         self.x = self.pts[:, 0]
@@ -130,7 +138,7 @@ class Track:
         self.done = False
 
     @classmethod
-    def generate(cls, approx_width=3., hw_ratio=0.5, seed=None, irregularity=0.2,
+    def generate(cls, approx_width=4., hw_ratio=0.5, seed=None, irregularity=0.2,
                  spikeyness=0.2, num_verts=10, *args, **kwargs):
         """
         Generate random track.
@@ -144,7 +152,7 @@ class Track:
         random.seed(seed)
         upscale = 1000.  # upscale so curve gen fun works
         r = upscale * approx_width / 2.
-        tr = Track_Generator(0,0,r, numVerts=num_verts)
+        tr = Track_Generator.generate(0,0,r, numVerts=num_verts)
         x,y = tr.get_vect()
         #pts = np.array(pts)
 
@@ -181,7 +189,7 @@ class Track:
         points = interpolate_points(points, 1000)
         return cls(points, *args, **kwargs)
     
-    def _render(self, w=3., h=2., ppm=1500, line_thickness=0.015, save=None, line_color="black",
+    def _render(self, ppm=1500, line_thickness=0.015, save=None, line_color="black",
                 background="white", line_opacity=0.8, dashed=False):
         """
         Render track using open-cv
@@ -198,6 +206,8 @@ class Track:
         :return: rendered track image array
         """
         import cv2
+        w=self.width+0.5
+        h=self.height+0.5
         w_res = int(round(w * ppm))
         h_res = int(round(h * ppm))
         t_res = int(round(line_thickness * ppm))
@@ -477,7 +487,7 @@ if __name__ == '__main__':
     # plt.show()
 
     for i in range(9):
-        t = Track.generate(2.0, hw_ratio=0.7, seed=None,
+        t = Track.generate(4.0, hw_ratio=0.7, seed=None,
                            spikeyness=0.2, nb_checkpoints=500)
         img = t.render(w=5.,h=5.,ppm=1000)
         plt.subplot(3, 3, i+1)

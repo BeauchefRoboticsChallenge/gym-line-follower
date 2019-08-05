@@ -37,7 +37,7 @@ map_Kd {texture_file}
 """
 
 
-def build_track_plane(track: Track, width=3., height=2., ppm=1000, path=None):
+def build_track_plane(track: Track, ppm=1000, path=None):
     """
     Render track texture and build .obj and .mtl files describing track plane. Use .obj file inside .urdf to
     import track plane in pybullet.
@@ -62,9 +62,9 @@ def build_track_plane(track: Track, width=3., height=2., ppm=1000, path=None):
         mtl_save_path = mtl_file
         texture_file_save_path = texture_file
 
-    track.render(width, height, ppm=ppm, save=texture_file_save_path)
-    x = width / 2
-    y = height / 2
+    track.render( ppm=ppm, save=texture_file_save_path)
+    x = (track.width+0.5) / 2
+    y = (track.height+0.5) / 2
     obj = obj_string.format(x=x, y=y, mtl_file=mtl_file)
     mtl = mtl_string.format(texture_file=texture_file)
     with open(obj_save_path, "w") as f:

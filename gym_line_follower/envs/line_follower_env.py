@@ -152,7 +152,7 @@ class LineFollowerEnv(gym.Env):
         if self.randomize:
             start_yaw += np.random.uniform(-0.2, 0.2)
 
-        build_track_plane(self.track, width=3, height=2.5, ppm=1500, path=self.local_dir)
+        build_track_plane(self.track, ppm=1500, path=self.local_dir)
         self.pb_client.loadURDF(os.path.join(self.local_dir, "track_plane.urdf"))
         self.follower_bot = LineFollowerBot(self.pb_client, self.nb_cam_pts, self.track.start_xy, start_yaw,
                                             self.config, obsv_type=self.obsv_type)
@@ -263,8 +263,10 @@ class LineFollowerEnv(gym.Env):
             # win_ax.axis("off")
             track_ax.set_aspect("equal")
             win_ax.set_aspect("equal")
-            track_ax.set_xlim(-1.5, 1.5)
-            track_ax.set_ylim(-1, 1)
+            limx=self.track.width/2+0.1
+            limy=self.track.height/2+0.1
+            track_ax.set_xlim(-limx, limx)
+            track_ax.set_ylim(-limy, limy)
 
             track_ax.plot(self.track.x, self.track.y, "k--")
             win_ax.plot(*self.follower_bot.cam_window.get_local_window().plottable, "m-")
