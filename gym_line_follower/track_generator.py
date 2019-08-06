@@ -278,17 +278,17 @@ class Track_Generator(object):
         p2=np.append(rect_p(pm[0],pm[1],cAng-da,cs2),cAng+da)
         rect2=Rect(p2[0],p2[1],p2[2],ds2)
         #Random curve
-        cur=Curve.random_curve(p1[0],p1[1],cAng,200,200,np.pi/2)
-        pc=cur.end
+        #cur=Curve.random_curve(p1[0],p1[1],cAng,200,200,np.pi/2)
+        #pc=cur.end
         cross=[]
         cross.append(rect1)
         if not self.check_seg(cross+[rect2]):
             return False
-        sol,err=self.join_points(pc,p2,[rect2]+self.endline,[rect1,cur],itmax=500)
+        sol,err=self.join_points(p1,p2,[rect2]+self.endline,[rect1],itmax=500)
         if err>50:
             return False
         p3=rect2.end
-        cross.append(cur)
+        #cross.append(cur)
         cross+=sol
         cross.append(rect2)
         cAng=np.arctan2(np.sin(cAng+da),np.cos(cAng+da))
@@ -307,7 +307,7 @@ class Track_Generator(object):
         :param preSegments: Segment list to add before track
         :param postSegments: Segment list to add after track
         :param numCurves: Number of curves to use in the solution
-        :param itmax: MAximum number of iterations
+        :param itmax: Maximum number of iterations
         :return: Solution Segment list and error
         """
         track=self.get_points(pd=50)
@@ -443,8 +443,8 @@ class Track_Generator(object):
                 else:
                     print("ERROR SEQ")
             else:
-                s1=100+random.random()*900
-                s2=100+random.random()*500
+                s1=400+random.random()*700
+                s2=400+random.random()*500
                 #Avoid getting stuck
                 pDa=self.segments[-1].da
                 if pDa > np.pi/2:
@@ -467,7 +467,7 @@ class Track_Generator(object):
             closure,err=self.join_points((cX,cY,cAng),pre_finish+(0,),self.endline,numCurves=4)
         self.segments+=closure
         self.segments+=self.endline
-        if err < 50:
+        if err < 20:
             return True
         else: 
             print("====FAILED====")
