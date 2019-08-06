@@ -55,15 +55,6 @@ class Segment:
         self.curve = bezier(self.p, self.numpoints)
 
 
-# def get_curve(points, **kw):
-#     segments = []
-#     for i in range(len(points) - 1):
-#         seg = Segment(points[i, :2], points[i + 1, :2], points[i, 2], points[i + 1, 2], **kw)
-#         segments.append(seg)
-#     curve = np.concatenate([s.curve for s in segments])
-#     return segments, curve
-
-
 def ccw_sort(p):
     d = p - np.mean(p, axis=0)
     s = np.arctan2(d[:, 0], d[:, 1])

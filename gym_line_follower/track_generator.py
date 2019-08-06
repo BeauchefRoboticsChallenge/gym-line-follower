@@ -8,8 +8,14 @@ from gym_line_follower.genetic.fitness import curves_fitness,curves_fitness_log
 import pickle
 
 class Segment(object):
-    """docstring for Segment"""
+    """Abstarct class of track segment"""
     def __init__(self, p1, p2, da, ds):
+        """
+        :param p1: Start point tuple (x1,y1,ang1)
+        :param p2: End point tuple (x2,y2,ang2)
+        :param da: Angle displacement in segment
+        :param ds: Length of segment
+        """
         super(Segment, self).__init__()
         self.start = p1
         self.end = p2
@@ -20,11 +26,23 @@ class Segment(object):
         return []
 
     def points_list(self,pd):
+        """
+        Generate List with segment points.
+        :param pd: Distance between points
+        :return: List of points tuples
+        """
         return self.get_points(pd).tolist()
         
 class Curve(Segment):
-    """docstring for Curve"""
+    """Curve class"""
     def __init__(self, x0,y0,cAng,da,ds):
+        """
+        Creates a curve
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param da: Angle displacement in curve
+        :param ds: Length of curve
+        """
         cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
         p1 = (x0,y0,cAng)
         r=ds/da
@@ -36,6 +54,11 @@ class Curve(Segment):
         self.args = [x0,y0,cAng,da,ds]
         
     def get_points(self, pd):
+        """
+        Generate array with curve points.
+        :param pd: Distance between points
+        :return: 2d array of points
+        """
         return get_curve(*self.args,pd=pd)
 
     def __repr__(self):
@@ -43,6 +66,16 @@ class Curve(Segment):
 
     @classmethod
     def random_curve(cls,x0,y0,cAng,rmax,dsmax,damax,direction=None):
+        """
+        Creates a random curve
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param rmax: Maximum radius
+        :param dsmax: Maximum length
+        :param damax: Maximum angle displacement
+        :param direction: direction of curve, -1/1 for negative/positive da,
+                          None for random
+        """
         rc=100+random.random()*rmax
         dac=np.clip((100+random.random()*dsmax)/rc,0,damax)
         if direction is not None:
@@ -53,8 +86,14 @@ class Curve(Segment):
         return cls(x0,y0,cAng,dac,dsc)
 
 class Rect(Segment):
-    """docstring for Rect"""
+    """Rect class"""
     def __init__(self, x0,y0,cAng,ds):
+        """
+        Creates a rect
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param ds: Length of rect
+        """
         cAng=np.arctan2(np.sin(cAng),np.cos(cAng))
         p1 = (x0,y0,cAng)
         p2 = tuple(np.append(rect_p(x0,y0,cAng,ds),cAng))
@@ -62,14 +101,25 @@ class Rect(Segment):
         self.args = [x0,y0,cAng,ds]
 
     def get_points(self,pd):
+        """
+        Generate array with rect points.
+        :param pd: Distance between points
+        :return: 2d array of points
+        """
         return get_rect(*self.args,pd)
 
     def __repr__(self):
         return "Rect[ds:{:.2f}]".format(self.args[3])  
 
 class Track_Generator(object):
-    """docstring for Track_Generator"""
+    """Track_Generator class. allows random initialization or manual construction"""
     def __init__(self, ctrX, ctrY, aveRadius,bar=False):
+        """
+        Creates empty track
+        :param ctrX,ctrY: Center of the track 
+        :param aveRadius: Average radius of the track
+        :param bar: Toggles the progress bar when using joint_points
+        """
         super(Track_Generator, self).__init__()
         self.segments = []
         self.endline = []
@@ -78,28 +128,74 @@ class Track_Generator(object):
         self.aveRadius=aveRadius
         self.start = (ctrX + self.start_finish_D/2, ctrY + int(-aveRadius),0)
         self.bar=bar
-        #self.generate_track(ctrX,ctrY,aveRadius, numVerts)
+        #self.generate_track(ctrX,ctrY,aveRadius, numSeg)
         
     @classmethod
-    def generate(cls,ctrX,ctrY,aveRadius, numVerts,bar=False):
+    def generate(cls,ctrX,ctrY,aveRadius, numSeg,bar=False):
+        """
+        Creates random track
+        :param ctrX,ctrY: Center of the track 
+        :param aveRadius: Average radius of the track
+        :param numSeg: Average number of segments
+        :param bar: Toggles the progress bar when using joint_points
+        :return: generated track
+        """
         track=cls(ctrX,ctrY,aveRadius,bar)
-        if track.generate_track(numVerts):
+        if track._generate_track(numSeg):
             return track
         else:
-            return cls.generate(ctrX,ctrY,aveRadius, numVerts,bar)
+            return cls.generate(ctrX,ctrY,aveRadius, numSeg,bar)
 
     def gen_points(self, segments,pd):
+        """
+        Generates the points of a segment list
+        :param segments: List of Segment objects
+        :param pd: Distance between points
+        :return: List of points tuples
+        """
         points=[]
         for seg in segments:
             points += seg.points_list(pd)
         return points
 
     def get_points(self,pd):
+        """
+        Generates the points of the track
+        :param pd: Distance between points
+        :return: List of points tuples
+        """
         points=self.gen_points(self.segments,pd)
         points.insert(0,self.start[:-1])
         return points[:-1]
 
+    def get_vect(self):
+        """
+        Generates points vectors of the track
+        :return: Arrays of x and y coordinates
+        """
+        points=self.get_points(pd=5)
+        c=np.array(points)
+        x,y=c.T
+        return x,y
+
+    def get_length(self):
+        """
+        Calculates the length of the track
+        :return: Length. float
+        """
+        L=0
+        for s in self.segments:
+            L+=s.ds
+        return L/1000.0
+
     def add_rect(self,x0,y0,cAng,ds):
+        """
+        Attemps to add a rect to the track
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param ds: Length of rect
+        :return: True if succesfull, False if not
+        """
         r=Rect(x0,y0,cAng,ds)
         if self.check_seg([r]):
             self.segments.append(r)
@@ -108,6 +204,14 @@ class Track_Generator(object):
             return False
 
     def add_curve(self,x0,y0,cAng,da,ds):
+        """
+        Attemps to add a curve to the track
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param da: Angle displacement in curve
+        :param ds: Length of curve
+        :return: True if succesfull, False if not
+        """
         c=Curve(x0,y0,cAng,da,ds)
         if self.check_seg([c]):
             self.segments.append(c)
@@ -116,6 +220,15 @@ class Track_Generator(object):
             return False
 
     def add_curve_seq(self,x0,y0,cAng,r,num,sec=0):
+        """
+        Attemps to add a curve sequence to the track
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param r: Radius of the curves
+        :param num: Number of curves pairs
+        :param seq: Length of the rect between curves
+        :return: True if succesfull, False if not
+        """
         da=[-np.pi,np.pi]
         ds=r*np.pi/2
         curves=[]
@@ -146,6 +259,18 @@ class Track_Generator(object):
             return False
 
     def add_cross(self,x0,y0,cAng,ds1,cs1,ds2,cs2,direction=False):
+        """
+        Attemps to add a crossing to the track
+        :param x0,y0: Start point of curve
+        :param cAng: Start track angle
+        :param ds1: Length of the direct rect
+        :param cs1: Cross point in the first rect
+        :param ds2: Length of the crossing rect
+        :param cs2: Cross point in the second rect
+        :param direction: Exit point direction after the crossing
+                          True for da->-pi/2 False for da->pi/2
+        :return: True if succesfull, False if not
+        """
         da=-np.pi/2 if direction else np.pi/2
         rect1=Rect(x0,y0,cAng,ds1)
         p1=rect1.end
@@ -175,6 +300,16 @@ class Track_Generator(object):
         
 
     def join_points(self, p1, p2, preSegments=[],postSegments=[],numCurves=3,itmax=1000):
+        """
+        Attemps to add a crossing to the track
+        :param p1: Start point tuple (x1,y1,ang1)
+        :param p2: End point tuple (x2,y2,ang2)
+        :param preSegments: Segment list to add before track
+        :param postSegments: Segment list to add after track
+        :param numCurves: Number of curves to use in the solution
+        :param itmax: MAximum number of iterations
+        :return: Solution Segment list and error
+        """
         track=self.get_points(pd=50)
         pre=self.gen_points(preSegments,pd=50)
         post=self.gen_points(postSegments,pd=50)
@@ -185,9 +320,9 @@ class Track_Generator(object):
             "end":p2}
         #Boundaries of the solution [length, curvature(1/R)] where sign of curvature determines direction
         bounds=[ (200,4000), (-(1/100), (1/100))]*numCurves
-        closure,fit = diff_evolution(curves_fitness,ob,bounds,
+        closure,err = diff_evolution(curves_fitness,ob,bounds,
             mut=0.2,crossp=0.9,popsize=100,its=itmax,stopf=1.0,bar=self.bar)
-        if fit>=10000:
+        if err>=10000:
             print(curves_fitness_log(closure,ob))
         sol=[]
         cX,cY,cAng=p1
@@ -203,13 +338,19 @@ class Track_Generator(object):
         pos_err=np.sqrt((cX-p2[0])**2+(cY-p2[1])**2)
         ang_err=np.abs(cAng-p2[2])
         print("=======================")
-        print("Fit1: {}".format(fit))
+        print("Fit1: {}".format(err))
         print("Pos error: {}".format(pos_err))
         print("Ang error: {}".format(ang_err))
         print("=======================")
-        return sol,fit
+        return sol,err
 
     def check_seg(self, seg_list, extraSegments=[]):
+        """
+        Checks if a Segment list does not collide or get stuck with the track
+        :param seg_list: List of Segment to test
+        :param extraSegments: List of Segments to add before the track
+        :return: True if succesfull, False if not
+        """
         if len(self.segments)==0:
             return True
         seg=self.gen_points(seg_list,pd=50)
@@ -232,13 +373,18 @@ class Track_Generator(object):
         return True
             
 
-    def generate_track(self, numVerts):
-        remVert=numVerts
+    def _generate_track(self, numSeg):
+        """
+        Generates segments in an empty track
+        :param numSeg: Average number of segments
+        :return: True if succesfull, False if not
+        """
+        remSeg=numSeg
         self.add_rect(self.start[0],self.start[1],self.start[2],
                                     random.randint(250,self.aveRadius-500))
         cX,cY,cAng = self.segments[-1].end
         finish = (self.ctr[0] - self.start_finish_D/2, self.ctr[1] + int(-self.aveRadius))
-        #post_start=(self.ctr[0] + 500 + random.randint(250,self.aveRadius-500), self.ctr[1] + int(-self.aveRadius))
+
         pre_finish= (self.ctr[0] - self.start_finish_D/2 - random.randint(250,self.aveRadius-500), self.ctr[1] + int(-self.aveRadius))
         
         #End section
@@ -246,14 +392,14 @@ class Track_Generator(object):
         self.endline.append(Rect(finish[0],finish[1],0,self.start_finish_D))
         #points.append(post_start)
 
-        #Primera curva
+        #First curve
         self.segments.append(Curve.random_curve(cX,cY,cAng,500,500,np.pi,1))
         cX,cY,cAng = self.segments[-1].end
-        remVert-=1
+        remSeg-=1
 
-        #while remVert>0:
+        #while remSeg>0:
         lSeg=0#lSeg:0->curve lSeg:1->rect
-        for _ in range(10):
+        for _ in range(numSeg):
             dctr=np.sqrt((cX-self.ctr[0])**2+(cY-self.ctr[1])**2)
             dactr=np.arctan2((cY-self.ctr[1]),(cX-self.ctr[0]))+np.pi-cAng
             dactr=np.arctan2(np.sin(dactr),np.cos(dactr))
@@ -273,14 +419,14 @@ class Track_Generator(object):
                 cur=Curve.random_curve(cX,cY,cAng,500,1000,damax,dirct)
                 if self.check_seg([cur]):
                     self.segments.append(cur)
-                    remVert-=1
+                    remSeg-=1
                     lSeg=0
                     print("Added Curve")
                 else:
                     print("ERROR CURVE")
             elif c==1:
                 if self.add_rect(cX,cY,cAng,random.randint(250,1000)):
-                    remVert-=1
+                    remSeg-=1
                     lSeg=1
                     print("Added Rect")
                 else:
@@ -291,7 +437,7 @@ class Track_Generator(object):
                 l= 0 if l<100 else l
                 num=random.randint(1,3)
                 if self.add_curve_seq(cX,cY,cAng,rad,num,l):
-                    remVert-=(2*4+1)
+                    remSeg-=(2*4+1)
                     lSeg=0
                     print("Added Curve_Seq")
                 else:
@@ -308,13 +454,12 @@ class Track_Generator(object):
                 else:
                     dirct=random.choice([True,False])
                 if self.add_cross(cX,cY,cAng,s1,s1/2,s2,s2/2,direction=dirct):
-                    remVert-=6
+                    remSeg-=6
                     lSeg=1
                     print("Added Cross")
                 else:
                     print("ERROR CROSS")
             cX,cY,cAng = self.segments[-1].end
-        # #for i in range(numVerts-1):
 
         #Close curve
         closure,err=self.join_points((cX,cY,cAng),pre_finish+(0,),self.endline)
@@ -328,19 +473,11 @@ class Track_Generator(object):
             print("====FAILED====")
             return False
         
-    def get_vect(self):
-        points=self.get_points(pd=5)
-        c=np.array(points)
-        x,y=c.T
-        return x,y
-
-    def get_length(self):
-        L=0
-        for s in self.segments:
-            L+=s.ds
-        return L/1000.0
 
 def testTrack():
+    """
+    Collision detection and stuck detection test
+    """
     rad=1000*3.0/2
     track=Track_Generator(0,0,rad,bar=True)
     cX,cY,cAng=track.start
@@ -353,9 +490,9 @@ def testTrack():
         return False
     print("Collision test passed")
     if track.add_curve(cX,cY,cAng,np.pi,np.pi*100):
-        print("Continuation test failed")
+        print("Stuck test failed")
         #return False
-    print("Continuation test passed")
+    print("Stuck test passed")
     cX,cY,cAng = track.segments[-1].end
     print(track.add_curve(cX,cY,cAng,-np.pi,(np.pi)*150))
 
@@ -372,7 +509,7 @@ if __name__ == '__main__':
     print("Test")
     rad=1000*3.0/2
     print("test passed:",testTrack())
-    track=Track_Generator.generate(0,0,rad,20,bar=True)
+    track=Track_Generator.generate(0,0,rad,10,bar=True)
     print(track.segments)
     x,y=track.get_vect()
     unit_scale = 1000
