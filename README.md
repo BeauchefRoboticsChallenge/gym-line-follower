@@ -15,6 +15,10 @@ Observation can either be a point sequence representing line in front of the rob
 or a robot point of view camera image.
 
 <img src="media/line_representation.png" width="450">
+
+
+
+
 Left: Track with progress marked green, Right: Camera field of view (magenta) with line representation
  points (cyan).
 
@@ -149,6 +153,11 @@ env = gym.make("LineFollower-v0")
  
  >This feature can be used in combination with ```"pov"``` render mode for automatic generation of labeled image data, 
  that can be used for training a line detector neural network.
+ 
+ ## Track shape
+ Track can be generated in a simple shape or following the robotracer guideline as follows.
+ 
+ <img src="media/trackRT.png" width="450">
  
  ## Example - DDPG
  The environment was used to train an agent using DDPG algorithm. The agent learns to precisely follow the line after 100k      steps. Training code and trained models are available in the ```examples``` folder. The agent performance after increasing numbers of training steps can be seen in the following video.

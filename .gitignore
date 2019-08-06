@@ -3,6 +3,7 @@ build/
 *.egg-info/
 __pycache__/
 *.obj
-*.png
 *.so
 *.mtl
+track_generator.png
+track_texture.generated.png
