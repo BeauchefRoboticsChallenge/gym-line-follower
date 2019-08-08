@@ -1,3 +1,6 @@
+#ifndef GYMLINEFOLLOWER_GENETIC_COLLISION_H_
+#define GYMLINEFOLLOWER_GENETIC_COLLISION_H_
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <math.h>
@@ -23,3 +26,5 @@ int collision_dect(py::array_t<double> seg,
 int collision_dect2(py::array_t<double> seg,
                    py::array_t<double> track,
                    double th);
+
+#endif  // GYMLINEFOLLOWER_GENETIC_COLLISION_H_

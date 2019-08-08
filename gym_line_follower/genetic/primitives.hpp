@@ -1,3 +1,6 @@
+#ifndef GYMLINEFOLLOWER_GENETIC_PRIMITIVES_H_
+#define GYMLINEFOLLOWER_GENETIC_PRIMITIVES_H_
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <math.h>
@@ -46,3 +49,4 @@ py::array_t<double> get_curve(double x0, double y0,
                               double cAng, double da, double ds,
                               int pd);
 
+#endif  // GYMLINEFOLLOWER_GENETIC_PRIMITIVES_H_
