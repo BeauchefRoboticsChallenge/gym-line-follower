@@ -1,5 +1,16 @@
 # Gym-Line-Follower
 
+------
+
+### To-do
+
+* Faster IR sensor simulation
+* Faster robotracer track generation
+* Make vectorized environment 
+* Add curvature change markers to robotracer track
+
+------
+
 Line follower robot simulator for OpenAI Gym.
 
 <img src="media/sim_env.gif" width="500">
