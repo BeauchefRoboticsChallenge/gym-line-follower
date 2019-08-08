@@ -54,6 +54,13 @@ class Segment:
                                            self.r * np.sin(self.angle2 + np.pi)])
         self.curve = bezier(self.p, self.numpoints)
 
+def get_curve(points, **kw):
+    segments = []
+    for i in range(len(points) - 1):
+        seg = Segment(points[i, :2], points[i + 1, :2], points[i, 2], points[i + 1, 2], **kw)
+        segments.append(seg)
+    curve = np.concatenate([s.curve for s in segments])
+    return segments, curve
 
 def ccw_sort(p):
     d = p - np.mean(p, axis=0)
@@ -83,6 +90,52 @@ def get_bezier_curve(a, rad=0.2, edgy=0):
     s, c = get_curve(a, r=rad, method="var")
     x, y = c.T
     return x, y, a
+
+def generate_polygon(ctrX, ctrY, aveRadius, irregularity, spikeyness, numVerts):
+    """
+    Start with the centre of the geometry at ctrX, ctrY,
+    then creates the geometry by sampling points on a circle around the centre.
+    Random noise is added by varying the angular spacing between sequential points,
+    and by varying the radial distance of each point from the centre.
+    Params:
+    ctrX, ctrY - coordinates of the "centre" of the geometry
+    aveRadius - in px, the average radius of this geometry, this roughly controls how large the geometry is, really only useful for order of magnitude.
+    irregularity - [0,1] indicating how much variance there is in the angular spacing of vertices. [0,1] will map to [0, 2pi/numberOfVerts]
+    spikeyness - [0,1] indicating how much variance there is in each vertex from the circle of radius aveRadius. [0,1] will map to [0, aveRadius]
+    numVerts - self-explanatory
+    Returns a list of vertices, in CCW order."""
+
+    irregularity = np.clip(irregularity, 0, 1) * 2 * math.pi / numVerts
+    spikeyness = np.clip(spikeyness, 0, 1) * aveRadius
+
+    # generate n angle steps
+    angleSteps = []
+    lower = (2 * math.pi / numVerts) - irregularity
+    upper = (2 * math.pi / numVerts) + irregularity
+    sum = 0
+    for i in range(numVerts):
+        tmp = random.uniform(lower, upper)
+        angleSteps.append(tmp)
+        sum = sum + tmp
+
+    # normalize the steps so that point 0 and point n+1 are the same
+    k = sum / (2 * math.pi)
+    for i in range(numVerts):
+        angleSteps[i] = angleSteps[i] / k
+
+    # now generate the points
+    points = []
+    angle = random.uniform(0, 2 * math.pi)
+    for i in range(numVerts):
+        r_i = np.clip(random.gauss(aveRadius, spikeyness), 0, 2 * aveRadius)
+        x = ctrX + r_i * math.cos(angle)
+        y = ctrY + r_i * math.sin(angle)
+        points.append((int(x), int(y)))
+
+        angle = angle + angleSteps[i]
+
+    return points
+
 
 
 class Track:
@@ -129,7 +182,7 @@ class Track:
         self.done = False
 
     @classmethod
-    def generate(cls, approx_width=4., hw_ratio=0.5, seed=None, irregularity=0.2,
+    def generate(cls, approx_width=1., hw_ratio=0.5, seed=None, irregularity=0.2,
                  spikeyness=0.2, num_verts=10, *args, **kwargs):
         """
         Generate random track.
@@ -143,18 +196,17 @@ class Track:
         random.seed(seed)
         upscale = 1000.  # upscale so curve gen fun works
         r = upscale * approx_width / 2.
-        tr = Track_Generator.generate(0,0,r, numVerts=num_verts)
-        x,y = tr.get_vect()
-        #pts = np.array(pts)
+        pts = generate_polygon(0, 0, r, irregularity=irregularity, spikeyness=spikeyness, numVerts=num_verts)
+        pts = np.array(pts)
 
         # Generate curve with points
-        #x, y, _ = get_bezier_curve(pts, rad=0.2, edgy=0)
+        x, y, _ = get_bezier_curve(pts, rad=0.2, edgy=0)
         # Remove duplicated point
-        #x = x[:-1]
-        #y = y[:-1]
+        x = x[:-1]
+        y = y[:-1]
 
         # Scale y
-        #y = y * hw_ratio
+        y = y * hw_ratio
 
         # Scale units
         unit_scale = 1000
@@ -162,13 +214,39 @@ class Track:
         pts = np.stack((x, y), axis=-1)
 
         # Check width / height:
-        #if max(abs(min(x)), max(x)) * 2 > 1.5 * approx_width or max(abs(min(y)), max(y)) * 2 > 1.5 * approx_width * hw_ratio:
-        #    return cls.generate(approx_width, hw_ratio, seed, irregularity, spikeyness, num_verts, *args, **kwargs)
+        if max(abs(min(x)), max(x)) * 2 > 1.5 * approx_width or max(abs(min(y)), max(y)) * 2 > 1.5 * approx_width * hw_ratio:
+            return cls.generate(approx_width, hw_ratio, seed, irregularity, spikeyness, num_verts, *args, **kwargs)
 
         # Randomly flip track direction
-        # np.random.seed(seed)
-        # if np.random.choice([True, False]):
-        #     pts = np.flip(pts, axis=0)
+        np.random.seed(seed)
+        if np.random.choice([True, False]):
+            pts = np.flip(pts, axis=0)
+        return cls(pts, *args, **kwargs)
+
+    @classmethod
+    def generate_robotracer(cls, approx_width=4., seed=None,
+                 num_segs=10, *args, **kwargs):
+        """
+        Generate random track following robotracer rules.
+        :param approx_width: approx. width of generated track
+        :param seed: seed for random generator
+        :param num_verts: aprox number of segments
+        :return: Track instance
+        """
+        # Generate random points
+        random.seed(seed)
+        np.random.seed(seed)
+        upscale = 1000.  # upscale so curve gen fun works
+        r = upscale * approx_width / 2.
+        tr = Track_Generator.generate(0,0,r, numSeg=num_segs)
+        x,y = tr.get_vect()
+
+        # Scale units
+        unit_scale = 1000
+        x, y = x / unit_scale, y / unit_scale
+        pts = np.stack((x, y), axis=-1)
+
+
         return cls(pts, *args, **kwargs)
 
     @classmethod

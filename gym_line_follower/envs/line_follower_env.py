@@ -27,10 +27,11 @@ class LineFollowerEnv(gym.Env):
     metadata = {"render.modes": ["human", "gui", "rgb_array", "pov"]}
 
     SUPPORTED_OBSV_TYPE = ["points_visible", "points_latch", "points_latch_bool", "camera","ir_array"]
+    SUPPORTED_TRACK_TYPE = ["simple", "robotracer"]
 
     def __init__(self, gui=True, nb_cam_pts=8, sub_steps=10, sim_time_step=1 / 250,
                  max_track_err=0.3, power_limit=0.4, max_time=60, config=None, randomize=True, obsv_type="points_latch",
-                 track=None, track_render_params=None):
+                 track=None, track_type="simple" , track_render_params=None):
         """
         Create environment.
         :param gui: True to enable pybullet OpenGL GUI
@@ -53,6 +54,7 @@ class LineFollowerEnv(gym.Env):
                             "camera" - return (240, 320, 3) camera image RGB array
                             "ir_array" - return array of lenght irsensor_array_number with the ir line sensor readings
         :param track: Optional track instance to use. If none track is generated randomly.
+        :param track_type: track type to generate
         :param track_render_params: Track render parameters dict.
         """
 
@@ -77,6 +79,10 @@ class LineFollowerEnv(gym.Env):
         self.obsv_type = obsv_type.lower()
         self.track_render_params = track_render_params
         self.preset_track = track
+        self.track_type = track_type.lower()
+
+        if self.track_type not in self.SUPPORTED_TRACK_TYPE:
+            raise ValueError("Track type '{}' not supported.".format(self.track_type))
 
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
 
@@ -145,8 +151,12 @@ class LineFollowerEnv(gym.Env):
         if self.preset_track:
             self.track = self.preset_track
         else:
-            self.track = Track.generate(1.75, hw_ratio=0.7, seed=None if self.randomize else 4125,
+            if self.track_type == "simple":
+                self.track = Track.generate(1.75, hw_ratio=0.7, seed=None if self.randomize else 4125,
                                         spikeyness=0.3, nb_checkpoints=500, render_params=self.track_render_params)
+            elif self.track_type == "robotracer":
+                self.track = Track.generate_robotracer(1.75, seed=None if self.randomize else 4125,
+                                        nb_checkpoints=500, render_params=self.track_render_params)
 
         start_yaw = self.track.start_angle
         if self.randomize:
