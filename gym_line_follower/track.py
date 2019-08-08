@@ -562,6 +562,11 @@ class Track:
                 break
         return ret
 
+    def reset_progress(self):
+        self.done = False
+        self.progress = 0.
+        self.progress_idx = 0
+        self.next_checkpoint_idx = 0
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

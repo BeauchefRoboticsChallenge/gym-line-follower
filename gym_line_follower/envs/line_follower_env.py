@@ -80,6 +80,7 @@ class LineFollowerEnv(gym.Env):
         self.track_render_params = track_render_params
         self.preset_track = track
         self.track_type = track_type.lower()
+        self.built_track = False
 
         if self.track_type not in self.SUPPORTED_TRACK_TYPE:
             raise ValueError("Track type '{}' not supported.".format(self.track_type))
@@ -150,6 +151,7 @@ class LineFollowerEnv(gym.Env):
 
         if self.preset_track:
             self.track = self.preset_track
+            self.track.reset_progress()
         else:
             if self.track_type == "simple":
                 self.track = Track.generate(1.75, hw_ratio=0.7, seed=None if self.randomize else 4125,
@@ -157,12 +159,16 @@ class LineFollowerEnv(gym.Env):
             elif self.track_type == "robotracer":
                 self.track = Track.generate_robotracer(1.75, seed=None if self.randomize else 4125,
                                         nb_checkpoints=500, render_params=self.track_render_params)
+            self.built_track = False
 
         start_yaw = self.track.start_angle
         if self.randomize:
             start_yaw += np.random.uniform(-0.2, 0.2)
 
-        build_track_plane(self.track, ppm=1500, path=self.local_dir)
+        if not self.built_track:
+            build_track_plane(self.track, ppm=1500, path=self.local_dir)
+            self.built_track=True
+
         self.pb_client.loadURDF(os.path.join(self.local_dir, "track_plane.urdf"))
         self.follower_bot = LineFollowerBot(self.pb_client, self.nb_cam_pts, self.track.start_xy, start_yaw,
                                             self.config, obsv_type=self.obsv_type)
