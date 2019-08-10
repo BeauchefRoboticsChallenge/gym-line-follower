@@ -71,7 +71,8 @@ setup(name='gym_line_follower',
       author="Nejc Planinsek",
       author_email="planinseknejc@gmail.com",
       description="Line follower simulator environment.",
-      ext_modules=[CMakeExtension('gym_line_follower/trackcpp')],
+      ext_modules=[CMakeExtension('gym_line_follower/trackcpp'),
+                   CMakeExtension('gym_line_follower/irsensor')],
       # add custom build_ext command    
       cmdclass=dict(build_ext=CMakeBuild),
       zip_safe=False
