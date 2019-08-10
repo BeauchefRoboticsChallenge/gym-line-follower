@@ -14,7 +14,7 @@ from gym_line_follower.track_plane_builder import build_track_plane
 from gym_line_follower.bullet_client import BulletClient
 from gym_line_follower.line_follower_bot import LineFollowerBot
 from gym_line_follower.randomizer_dict import RandomizerDict
-
+from gym_line_follower.utils import TrackImg
 
 def fig2rgb_array(fig):
     fig.canvas.draw()
@@ -111,7 +111,7 @@ class LineFollowerEnv(gym.Env):
         elif self.obsv_type == "ir_array":
             sen_num = self.config["irsensor_array_number"]
             self.observation_space = spaces.Box(low=np.array([0] * sen_num),
-                                                high=np.array([255] * sen_num),
+                                                high=np.array([1023] * sen_num),
                                                 dtype=np.uint8)
 
         self.pb_client: p = BulletClient(connection_mode=p.GUI if self.gui else p.DIRECT)
@@ -166,12 +166,16 @@ class LineFollowerEnv(gym.Env):
             start_yaw += np.random.uniform(-0.2, 0.2)
 
         if not self.built_track:
-            build_track_plane(self.track, ppm=1500, path=self.local_dir)
+            img=build_track_plane(self.track, ppm=1500, path=self.local_dir)
             self.built_track=True
+        else:
+            img = self.track.render(ppm=1500)
+        track_img = TrackImg(img,1500)
 
         self.pb_client.loadURDF(os.path.join(self.local_dir, "track_plane.urdf"))
+
         self.follower_bot = LineFollowerBot(self.pb_client, self.nb_cam_pts, self.track.start_xy, start_yaw,
-                                            self.config, obsv_type=self.obsv_type)
+                                            self.config, obsv_type=self.obsv_type, track_img=track_img)
 
         self.position_on_track = 0.
 

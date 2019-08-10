@@ -1,18 +1,33 @@
 #include "irsensor.hpp"
 #include <cmath>
 
-
+/*! Transform from degrees to radians
+    \param deg  angle in degrees
+*/
 double d2r(double deg){
-    return 2*M_PI*deg/180.0;
+    return M_PI*deg/180.0;
+}
+
+//from https://stackoverflow.com/questions/9323903/most-efficient-elegant-way-to-clip-a-number
+/*! Clamp an int between min/max
+    \param x  Number to clamp
+    \param min  Minimum
+    \param max  Maximum
+*/
+int clamp(int x, int min, int max)
+{
+    if (x < min) x = min;
+    if (x > max) x = max;
+    return x;
 }
 
 IrSensor::IrSensor(py::array_t<uint8_t, py::array::c_style | py::array::forcecast> img,
                    int track_ppm, double ds, double photo_heigth,
-                   int array_size, double photo_sep, double photo_fov){
+                   int array_size, double photo_sep, double photo_fov, double base_noise)
+    :m_gen((std::random_device())()), m_dis(0,base_noise){
     m_ds = ds;
     m_array_size = array_size;
     m_radius = int(photo_heigth*tan(d2r(photo_fov)/2)*track_ppm);
-    py::print(m_radius);
     m_photo_sep = photo_sep;
     m_track_ppm = track_ppm;
     //Copy track
@@ -22,7 +37,6 @@ IrSensor::IrSensor(py::array_t<uint8_t, py::array::c_style | py::array::forcecas
     uint8_t *buf_ptr = (uint8_t *) buf_info.ptr;
     m_track_heigth=buf_info.shape[0];
     m_track_width=buf_info.shape[1];
-    py::print(buf_info.size);
     track = std::make_unique<uint8_t[]>(buf_info.size);
     for (int i = 0; i < buf_info.size; ++i) {
         track[i] = buf_ptr[i];
@@ -37,10 +51,10 @@ ipoint IrSensor::to_pixel(dpoint p){
     return ipoint(px,py);
 }
 
-void IrSensor::update(double x, double y, double ang){
-    dpoint pos = dpoint(x+m_ds*cos(ang),y+m_ds*sin(ang)) +
-            dpoint(-m_photo_sep*sin(ang),m_photo_sep*cos(ang))*((m_array_size-1)/2.0);
-    dpoint dif = dpoint(m_photo_sep*sin(ang),-m_photo_sep*cos(ang));
+void IrSensor::update(double x, double y, double yaw){
+    dpoint pos = dpoint(x+m_ds*cos(yaw),y+m_ds*sin(yaw)) +
+            dpoint(-m_photo_sep*sin(yaw),m_photo_sep*cos(yaw))*((m_array_size-1)/2.0);
+    dpoint dif = dpoint(m_photo_sep*sin(yaw),-m_photo_sep*cos(yaw));
     for (int i = 0; i < m_array_size; ++i) {
         ipoint sen_pos = to_pixel(pos + dif*double(i));
         photo_pos[i].x=sen_pos.x;
@@ -68,10 +82,9 @@ py::array_t<int> IrSensor::read(){
                     }
                     n++;
                 }
-
             }
         }
-        ptr[i] = int(std::round((1023.0/255.0)*sum/n));
+        ptr[i] = clamp(int(std::round((1023.0/255.0)*sum/n)+m_dis(m_gen)),0,1023);
     }
     return sen;
 }
@@ -85,5 +98,9 @@ py::array_t<int> IrSensor::get_photo_pos(){
         ptr[2*i+1] = photo_pos[i].y;
     }
     return pos;
+}
+
+int IrSensor::get_sen_radius(){
+    return m_radius;
 }
 

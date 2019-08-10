@@ -7,8 +7,9 @@ from gym_line_follower.trackcpp import rect_p,get_rect,curve_p,get_curve
 from gym_line_follower.genetic.de import diff_evolution
 from gym_line_follower.genetic.fitness import curves_fitness,curves_fitness_log
 import pickle
+from abc import ABC, abstractmethod
 
-class Segment(object):
+class Segment(ABC):
     """Abstarct class of track segment"""
     def __init__(self, p1, p2, da, ds):
         """
@@ -23,8 +24,9 @@ class Segment(object):
         self.da = da
         self.ds = ds
 
-    def get_points(self, arg):
-        return []
+    @abstractmethod
+    def get_points(self, pd):
+        pass
 
     def points_list(self,pd):
         """

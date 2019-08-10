@@ -62,7 +62,7 @@ def build_track_plane(track: Track, ppm=1000, path=None):
         mtl_save_path = mtl_file
         texture_file_save_path = texture_file
 
-    track.render( ppm=ppm, save=texture_file_save_path)
+    img=track.render( ppm=ppm, save=texture_file_save_path)
     x = (track.width+0.5) / 2
     y = (track.height+0.5) / 2
     obj = obj_string.format(x=x, y=y, mtl_file=mtl_file)
@@ -71,3 +71,5 @@ def build_track_plane(track: Track, ppm=1000, path=None):
         f.write(obj)
     with open(mtl_save_path, "w") as f:
         f.write(mtl)
+
+    return img
