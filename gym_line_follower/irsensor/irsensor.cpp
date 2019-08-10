@@ -38,8 +38,8 @@ ipoint IrSensor::to_pixel(dpoint p){
 }
 
 void IrSensor::update(double x, double y, double ang){
-    dpoint pos = dpoint(x+m_ds*cos(ang),y+m_ds*sin(ang))+
-            dpoint(-m_photo_sep*sin(ang),m_photo_sep*cos(ang));
+    dpoint pos = dpoint(x+m_ds*cos(ang),y+m_ds*sin(ang)) +
+            dpoint(-m_photo_sep*sin(ang),m_photo_sep*cos(ang))*((m_array_size-1)/2.0);
     dpoint dif = dpoint(m_photo_sep*sin(ang),-m_photo_sep*cos(ang));
     for (int i = 0; i < m_array_size; ++i) {
         ipoint sen_pos = to_pixel(pos + dif*double(i));
