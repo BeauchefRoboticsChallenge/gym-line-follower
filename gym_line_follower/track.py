@@ -389,7 +389,7 @@ class Track:
         #     pt = Point(pt)
         # return pt.distance(self.mpt)
         pt=np.array(pt)
-        win=np.clip([self.progress_idx-50,self.progress_idx+50],0,len(self.pts))
+        win=np.clip([self.progress_idx-100,self.progress_idx+100],0,len(self.pts))
         searchW=self.pts[win[0]:win[1]]
         d=np.sqrt(np.sum((searchW-pt)**2,axis=1))
         return np.min(d)
@@ -431,7 +431,7 @@ class Track:
 
     def nearest_point_idx(self,pt):
         pt=np.array(pt)
-        win=np.clip([self.progress_idx-50,self.progress_idx+50],0,len(self.pts))
+        win=np.clip([self.progress_idx-100,self.progress_idx+100],0,len(self.pts))
         searchW=self.pts[win[0]:win[1]]
         d=np.sqrt(np.sum((searchW-pt)**2,axis=1))
         return np.argmin(d)
