@@ -156,8 +156,8 @@ class Track:
         n = int(l / 3e-3)  # Get number of points for 3 mm spacing
         self.width=w[0]
         self.height=w[1]
-        #self.pts = interpolate_points(np.array(pts), n)  # interpolate points to get the right spacing
-        self.pts=pts
+        self.pts = interpolate_points(np.array(pts), n)  # interpolate points to get the right spacing
+        #self.pts=pts
         self.x = self.pts[:, 0]
         self.y = self.pts[:, 1]
 

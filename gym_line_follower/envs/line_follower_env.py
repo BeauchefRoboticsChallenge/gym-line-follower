@@ -337,7 +337,7 @@ class LineFollowerEnv(gym.Env):
             img = fig2rgb_array(self.plot["fig"])
             return img
         elif mode == "gui":  # Sleep to make GUI realtime
-            while time() - self._render_time < 1 / 25:
+            while time() - self._render_time < (self.sim_time_step*self.sub_steps-0.001):
                 sleep(0.001)
             self._render_time = time()
         elif mode == "pov":
