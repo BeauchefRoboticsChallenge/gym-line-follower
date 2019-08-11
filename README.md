@@ -8,6 +8,7 @@
 * Faster robotracer track generation
 * Make vectorized environment 
 * Add curvature change markers to robotracer track
+* Faster simple gui
 
 ------
 
