@@ -5,7 +5,7 @@
 namespace py = pybind11;
 
 
-PYBIND11_MODULE(trackcpp, m) {
+PYBIND11_MODULE(trackutils, m) {
     m.doc() = "gym_line_follower track collisin detector"; // optional module docstring
 
     m.def("rect_p", &rect_p, "Function to calculate end point of a rect.",

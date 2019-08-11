@@ -2,8 +2,8 @@
 import numpy as np
 import math
 import random
-from gym_line_follower.trackcpp import collision_dect,collision_dect2
-from gym_line_follower.trackcpp import rect_p,get_rect,curve_p,get_curve
+from gym_line_follower.trackutils import collision_dect,collision_dect2
+from gym_line_follower.trackutils import rect_p,get_rect,curve_p,get_curve
 from gym_line_follower.genetic.de import diff_evolution
 from gym_line_follower.genetic.fitness import curves_fitness,curves_fitness_log
 import pickle

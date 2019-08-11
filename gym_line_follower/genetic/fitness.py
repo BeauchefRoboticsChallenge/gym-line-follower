@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
-from gym_line_follower.trackcpp import collision_dect,get_curve,get_rect
+from gym_line_follower.trackutils import collision_dect,get_curve,get_rect
 
 
 def collision_dect_check(seg,track,th=100):
