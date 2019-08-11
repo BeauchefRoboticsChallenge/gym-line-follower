@@ -4,7 +4,7 @@
 
 ### To-do
 
-* Faster IR sensor simulation
+* ~~Faster IR sensor simulation~~
 * Faster robotracer track generation
 * Make vectorized environment 
 * Add curvature change markers to robotracer track
