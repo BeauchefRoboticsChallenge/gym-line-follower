@@ -289,12 +289,16 @@ class LineFollowerEnv(gym.Env):
             track_ax.set_ylim(-limy, limy)
 
             track_ax.plot(self.track.x, self.track.y, "k--")
-            win_ax.plot(*self.follower_bot.cam_window.get_local_window().plottable, "m-")
+            if self.obsv_type == "ir_array":
+                vis_pts_line = win_ax.imshow(np.zeros((6,1)),vmin=0,vmax=1023)
+                win_ax.get_xaxis().set_visible(False)
+            else:
+                win_ax.plot(*self.follower_bot.cam_window.get_local_window().plottable, "m-")
+                vis_pts_line, = win_ax.plot([], [], "c.")
 
             pos_line, = track_ax.plot(0, 0, "ro")
             win_line, = track_ax.plot(*self.follower_bot.cam_window.plottable, "m--")
             track_ref_line, = track_ax.plot(*self.follower_bot.track_ref_point.plottable, "c.")
-            vis_pts_line, = win_ax.plot([], [], "c.")
             progress_line, = track_ax.plot([], [], "g--")
 
             self.plot = {"fig": fig,
@@ -322,8 +326,11 @@ class LineFollowerEnv(gym.Env):
             else:
                 vis_pts = np.array(self.observation).reshape((-1, 2))
 
-            self.plot["vis_pts_line"].set_xdata(vis_pts[:, 0])
-            self.plot["vis_pts_line"].set_ydata(vis_pts[:, 1])
+            if self.obsv_type == "ir_array":
+                self.plot["vis_pts_line"].set_data(np.expand_dims(self.observation,0).T)
+            else:    
+                self.plot["vis_pts_line"].set_xdata(vis_pts[:, 0])
+                self.plot["vis_pts_line"].set_ydata(vis_pts[:, 1])
 
             self.plot["track_ref_line"].set_xdata(self.follower_bot.track_ref_point.plottable[0])
             self.plot["track_ref_line"].set_ydata(self.follower_bot.track_ref_point.plottable[1])
