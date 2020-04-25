@@ -49,11 +49,13 @@ Requirements:
 - Shapely
 - Pybullet
 - OpenCV
+- Matplotlib
+- Cmake
 
 ```
 git clone https://github.com/nplan/gym-line-follower.git
 cd gym_line_follower
-pip3 install gym_line_follower -e
+pip3 install -e .
 ```
 > Requirements will be installed automatically. By using ````-e```` the environment is
 installed in place and is editable.
@@ -62,6 +64,7 @@ installed in place and is editable.
 Load the environment as usual.
 ``` python
 import gym
+import gym_line_follower
 env = gym.make("LineFollower-v0")
 ```
 
