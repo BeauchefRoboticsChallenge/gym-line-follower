@@ -70,7 +70,7 @@ class LineFollowerBot:
         if self.obsv_type not in self.SUPPORTED_OBSV_TYPE:
             raise ValueError("Observation type '{}' not supported.".format(self.obsv_type))
         if self.obsv_type=="ir_array":
-            if not (track_img, TrackImg):
+            if not isinstance(track_img, TrackImg):
                 raise TypeError("track_img must be an TrackImg")
             sen_heigth = self.config["irsensor_position_heigth"]
             sen_dx=self.config["irsensor_position_point_x"]
@@ -283,46 +283,3 @@ class LineFollowerBot:
         rgb = np.array(rgb)
         rgb = rgb[:, :, :3]
         return rgb
-
-    # def get_ir_image(self):#TODO
-    #     ir_x, ir_y = self.ir_pos_point.get_xy()
-    #     ir_z = self.config["irsensor_position_heigth"]
-    #     _ , yaw = self.get_position()
-    #     vm = self.pb_client.computeViewMatrix(cameraEyePosition=[ir_x, ir_y, ir_z],
-    #                                           cameraTargetPosition=[ir_x, ir_y, 0.0],
-    #                                           cameraUpVector=[np.cos(yaw), np.sin(yaw), 0.0])
-
-    #     fov=self.config["irsensor_photo_fov"]
-    #     num=self.config["irsensor_array_number"]
-    #     sep=self.config["irsensor_photo_separation"]
-    #     r=ir_z*np.tan(np.deg2rad(fov/2))
-    #     sen_w=(num-1)*sep+2*r
-    #     sen_h=2*r
-    #     pm = self.pb_client.computeProjectionMatrix(left=-sen_w/4,
-    #                                                 right=sen_w/4,
-    #                                                 bottom=-sen_h/4,
-    #                                                 top=sen_h/4,
-    #                                                 nearVal=ir_z/2,
-    #                                                 farVal=ir_z)
-    #     w, h, rgb, dtypeth, seg = self.pb_client.getCameraImage(width=int(sen_w*5000),
-    #                                                          height=int(sen_h*5000),
-    #                                                          viewMatrix=vm,
-    #                                                          projectionMatrix=pm,
-    #                                                          renderer=p.ER_TINY_RENDERER,
-    #                                                          shadow=0,
-    #                                                          flags=p.ER_NO_SEGMENTATION_MASK)
-    #     rgb = np.array(rgb)
-    #     rgb = rgb[:, :, :3]
-    #     gray = rgb.dot([0.07, 0.72, 0.21])
-    #     return np.minimum(gray, 255).astype(np.uint8)
-
-    # def get_ir_array(self):
-    #     im=self.get_ir_image()
-    #     num=self.config["irsensor_array_number"]
-    #     d=im.shape[0]
-    #     sep=int((im.shape[1]-d)/(num-1))
-    #     ir=np.zeros(num,dtype=np.uint8)
-    #     for i in range(num):
-    #         sen=im[:,(sep*i):(sep*i+d)]
-    #         ir[i]=int(np.mean(sen))
-    #     return ir

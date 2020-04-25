@@ -62,7 +62,9 @@ class LineFollowerEnv(gym.Env):
 
         if config is None:
             config_path = os.path.join(self.local_dir, "bot_config.json")
-            self.config = RandomizerDict(json.load(open(config_path, "r")))
+            with open(config_path, "r") as bot_config:
+                self.config = RandomizerDict(json.load(bot_config))
+            #self.config = RandomizerDict(json.load(open(config_path, "r")))
         else:
             self.config = config
 
@@ -85,7 +87,7 @@ class LineFollowerEnv(gym.Env):
         if self.track_type not in self.SUPPORTED_TRACK_TYPE:
             raise ValueError("Track type '{}' not supported.".format(self.track_type))
 
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float64)
 
         if self.obsv_type not in self.SUPPORTED_OBSV_TYPE:
             raise ValueError("Observation type '{}' not supported.".format(self.obsv_type))

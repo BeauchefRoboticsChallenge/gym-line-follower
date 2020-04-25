@@ -70,7 +70,9 @@ def main():
         #env.render("gui")#human/gui
         i+=1
     end=time.time()
+    print("======================")
     print("IT/s ",i/(end - start))
+    print("======================")
     env.close()
 
 if __name__ == '__main__':
