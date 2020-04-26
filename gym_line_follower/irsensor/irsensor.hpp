@@ -49,7 +49,7 @@ public:
     void update(double x, double y, double yaw);
 
     //Get the reading of each sensor in the array
-    py::array_t<int> read();
+    py::array_t<double> read();
 
     //Get the position[pixel] of each sensor of the array i the track image
     py::array_t<int> get_photo_pos();

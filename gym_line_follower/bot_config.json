@@ -22,6 +22,6 @@
   "irsensor_array_number": 6,
   "irsensor_photo_separation": 0.009525,
   "irsensor_photo_fov": 80,
-  "irsensor_noise": 10.0,
+  "irsensor_noise": 0.05,
   "volts": 5.0
 }

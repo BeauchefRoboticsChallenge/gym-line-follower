@@ -112,9 +112,9 @@ class LineFollowerEnv(gym.Env):
             self.observation_space = spaces.Box(low=0, high=255, shape=(240, 320, 3), dtype=np.uint8)
         elif self.obsv_type == "ir_array":
             sen_num = self.config["irsensor_array_number"]
-            self.observation_space = spaces.Box(low=np.array([0] * sen_num),
-                                                high=np.array([1023] * sen_num),
-                                                dtype=np.uint8)
+            self.observation_space = spaces.Box(low=np.array([0.0] * sen_num),
+                                                high=np.array([1.0] * sen_num),
+                                                dtype=np.float64)
 
         self.pb_client: p = BulletClient(connection_mode=p.GUI if self.gui else p.DIRECT)
         self.pb_client.setPhysicsEngineParameter(enableFileCaching=0)

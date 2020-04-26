@@ -14,7 +14,7 @@ double d2r(double deg){
     \param min  Minimum
     \param max  Maximum
 */
-int clamp(int x, int min, int max)
+double clamp(double x, double min, double max)
 {
     if (x < min) x = min;
     if (x > max) x = max;
@@ -62,10 +62,10 @@ void IrSensor::update(double x, double y, double yaw){
     }
 }
 
-py::array_t<int> IrSensor::read(){
-    py::array_t<int> sen(m_array_size);
+py::array_t<double> IrSensor::read(){
+    py::array_t<double> sen(m_array_size);
     py::buffer_info buf = sen.request();
-    int *ptr = (int *) buf.ptr;
+    double *ptr = (double *) buf.ptr;
     for (int i = 0; i < m_array_size; ++i) {
         double sum = 0;
         int n = 0;
@@ -78,13 +78,13 @@ py::array_t<int> IrSensor::read(){
                         sum+=double(track[x+m_track_width*y]);
                     }
                     else { //White color in out of bounds area
-                        sum+=double(255);
+                        sum+=double(0);
                     }
                     n++;
                 }
             }
         }
-        ptr[i] = clamp(int(std::round((1023.0/255.0)*sum/n)+m_dis(m_gen)),0,1023);
+        ptr[i] = clamp(std::round((1.0/255.0)*sum/n)+m_dis(m_gen),0.0,1.0);
     }
     return sen;
 }
