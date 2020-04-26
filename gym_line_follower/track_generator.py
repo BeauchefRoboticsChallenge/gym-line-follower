@@ -5,7 +5,7 @@ import random
 from gym_line_follower.trackutils import collision_dect,collision_dect2
 from gym_line_follower.trackutils import rect_p,get_rect,curve_p,get_curve
 from gym_line_follower.genetic.de import diff_evolution
-from gym_line_follower.genetic.fitness import curves_fitness,curves_fitness_log
+from gym_line_follower.genetic.fitness import curves_fitness
 import pickle
 from abc import ABC, abstractmethod
 
@@ -346,8 +346,6 @@ class Track_Generator(object):
         bounds=[ (200,4000), (-(1/100), (1/100))]*numCurves
         closure,err = diff_evolution(curves_fitness,ob,bounds,
             mut=0.2,crossp=0.9,popsize=100,its=itmax,stopf=1.0,bar=self.bar)
-        if err>=10000:
-            print(curves_fitness_log(closure,ob))
         sol=[]
         cX,cY,cAng=p1
         for ds,cur in closure.reshape((numCurves,2)):
