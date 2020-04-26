@@ -14,7 +14,7 @@ from gym_line_follower.track_plane_builder import build_track_plane
 from gym_line_follower.bullet_client import BulletClient
 from gym_line_follower.line_follower_bot import LineFollowerBot
 from gym_line_follower.randomizer_dict import RandomizerDict
-from gym_line_follower.utils import TrackImg
+from gym_line_follower.utils import TrackRefImg
 
 def fig2rgb_array(fig):
     fig.canvas.draw()
@@ -172,7 +172,7 @@ class LineFollowerEnv(gym.Env):
             self.built_track=True
         else:
             img = self.track.render(ppm=1500)
-        track_img = TrackImg(img,1500)
+        track_img = TrackRefImg(img,1500)
 
         self.pb_client.loadURDF(os.path.join(self.local_dir, "track_plane.urdf"))
 

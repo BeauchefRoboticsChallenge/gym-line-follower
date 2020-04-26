@@ -8,7 +8,7 @@ from .line_interpolation import sort_points, interpolate_points
 from .dc_motor import DCMotor
 from .track import Track
 from .irsensor import IrSensor
-from .utils import TrackImg
+from .utils import TrackRefImg
 
 JOINT_INDICES = {"left_wheel": 1,
                  "right_wheel": 2}
@@ -70,7 +70,7 @@ class LineFollowerBot:
         if self.obsv_type not in self.SUPPORTED_OBSV_TYPE:
             raise ValueError("Observation type '{}' not supported.".format(self.obsv_type))
         if self.obsv_type=="ir_array":
-            if not isinstance(track_img, TrackImg):
+            if not isinstance(track_img, TrackRefImg):
                 raise TypeError("track_img must be an TrackImg")
             sen_heigth = self.config["irsensor_position_heigth"]
             sen_dx=self.config["irsensor_position_point_x"]
