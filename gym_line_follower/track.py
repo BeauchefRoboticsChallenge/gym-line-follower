@@ -11,11 +11,6 @@ from shapely.ops import nearest_points
 from gym_line_follower.line_interpolation import interpolate_points
 from gym_line_follower.track_generator import Track_Generator
 
-import warnings
-
-
-warnings.filterwarnings("error")
-
 root_dir = os.path.dirname(__file__)
 
 
