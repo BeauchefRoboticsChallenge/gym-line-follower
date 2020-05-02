@@ -2,6 +2,7 @@ import os
 import json
 import warnings
 from time import time, sleep
+import tempfile
 
 import gym
 from gym import spaces
@@ -59,6 +60,7 @@ class LineFollowerEnv(gym.Env):
         """
 
         self.local_dir = os.path.dirname(os.path.dirname(__file__))
+        self.track_dir = tempfile.TemporaryDirectory(prefix="linegym_")
 
         if config is None:
             config_path = os.path.join(self.local_dir, "bot_config.json")
@@ -168,13 +170,13 @@ class LineFollowerEnv(gym.Env):
             start_yaw += np.random.uniform(-0.2, 0.2)
 
         if not self.built_track:
-            img=build_track_plane(self.track, ppm=1500, path=self.local_dir)
+            img=build_track_plane(self.track, ppm=1500, path=self.track_dir.name)
             self.built_track=True
         else:
             img = self.track.render(ppm=1500)
         track_img = TrackRefImg(img,1500)
 
-        self.pb_client.loadURDF(os.path.join(self.local_dir, "track_plane.urdf"))
+        self.pb_client.loadURDF(os.path.join(self.track_dir.name, "track_plane.generated.urdf"))
 
         self.follower_bot = LineFollowerBot(self.pb_client, self.nb_cam_pts, self.track.start_xy, start_yaw,
                                             self.config, obsv_type=self.obsv_type, track_img=track_img)
@@ -358,6 +360,7 @@ class LineFollowerEnv(gym.Env):
         if self.plot:
             plt.close(self.plot["fig"])
             plt.ioff()
+        self.track_dir.cleanup()
         return
 
     def seed(self, seed=None):

@@ -253,12 +253,11 @@ class Track:
         points = interpolate_points(points, 1000)
         return cls(points, *args, **kwargs)
     
-    def _render(self, ppm=1500, line_thickness=0.015, save=None, line_color="black",
+    def _render(self, border_w=0.3, ppm=1500, line_thickness=0.015, save=None, line_color="black",
                 background="white", line_opacity=0.8, dashed=False):
         """
         Render track using open-cv
-        :param w: canvas width in meters
-        :param h: canvas height in meters
+        :param border_w: track outside border width in meters
         :param ppm: pixel per meter
         :param line_thickness: line thickness in meters
         :param save: path to save
@@ -270,8 +269,8 @@ class Track:
         :return: rendered track image array
         """
         import cv2
-        w=self.width+0.5
-        h=self.height+0.5
+        w=self.width + 2*border_w
+        h=self.height + 2*border_w
         w_res = int(round(w * ppm))
         h_res = int(round(h * ppm))
         t_res = int(round(line_thickness * ppm))
